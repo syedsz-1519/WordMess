@@ -1,31 +1,29 @@
+import React from 'react';
 import { motion } from 'framer-motion';
 import { Tile } from './Tile';
-import type { LetterState } from '../../utils/evaluateGuess';
+import { LetterState } from '../../utils/evaluateGuess';
 
 interface RowProps {
   guess: string;
   result?: LetterState[];
-  isCurrent?: boolean;
   isInvalid?: boolean;
 }
 
-export const Row = ({ guess, result, isInvalid }: RowProps) => {
-  const letters = guess.padEnd(5, ' ').split('');
-  const defaultResult: LetterState[] = Array(5).fill('empty');
+export const Row = ({ guess, result, isInvalid = false }: RowProps) => {
+  const letters = guess.split('').concat(Array(5 - guess.length).fill(''));
 
   return (
-    <motion.div
+    <motion.div 
+      className="flex gap-[var(--tile-gap)] justify-center"
       animate={isInvalid ? { x: [-10, 10, -10, 10, 0] } : {}}
       transition={{ duration: 0.4 }}
-      className="flex gap-1 md:gap-[5px] mb-1 md:mb-[6px] justify-center"
     >
       {letters.map((letter, i) => (
-        <Tile
-          key={i}
-          letter={letter === ' ' ? '' : letter}
-          state={result ? result[i] : defaultResult[i]}
-          isCompleted={!!result}
-          position={i}
+        <Tile 
+          key={i} 
+          letter={letter} 
+          state={result?.[i]} 
+          delay={result ? i * 0.1 : 0} 
         />
       ))}
     </motion.div>

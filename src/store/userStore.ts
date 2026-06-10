@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { PlanTier } from '../constants/plans';
 import { syncUserStats } from '../lib/firebase';
+import { GameId } from '../constants/games';
 
 export interface GameHistory {
   date: string;
@@ -25,6 +26,7 @@ export interface UserState {
   history: GameHistory[];
   notifTime: string;
   theme: string;
+  levels: Record<GameId, number>; // Tracks level 1-1000 for each game
 }
 
 interface UserActions {
@@ -36,6 +38,7 @@ interface UserActions {
   toggleHaptic: () => void;
   setNotifTime: (time: string) => void;
   setTheme: (theme: string) => void;
+  nextLevel: (gameId: GameId) => void;
 }
 
 const initialState: UserState = {
@@ -51,6 +54,16 @@ const initialState: UserState = {
   history: [],
   notifTime: '08:00',
   theme: 'dark',
+  levels: {
+    classic: 1,
+    double: 1,
+    quad: 1,
+    speed: 1,
+    reverse: 1,
+    number: 1,
+    duel: 1,
+    ai: 1
+  }
 };
 
 export const useUserStore = create<UserState & UserActions>()(
@@ -92,7 +105,6 @@ export const useUserStore = create<UserState & UserActions>()(
       },
       
       addHistory: (entry) => set((state) => {
-        // Keep last 100 games
         const history = [entry, ...state.history].slice(0, 100);
         return { history };
       }),
@@ -102,6 +114,15 @@ export const useUserStore = create<UserState & UserActions>()(
       setNotifTime: (notifTime) => set({ notifTime }),
       
       setTheme: (theme) => set({ theme }),
+
+      nextLevel: (gameId) => set((state) => {
+        const current = state.levels[gameId] || 1;
+        // Cap at 1000 levels
+        const next = Math.min(1000, current + 1);
+        return {
+          levels: { ...state.levels, [gameId]: next }
+        };
+      })
     }),
     {
       name: 'wordmess-user-storage',

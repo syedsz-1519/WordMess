@@ -14,8 +14,16 @@ export const getDailyWord = (): string => {
   return WORDS[getDailyWordIndex()];
 };
 
-export const getDailyNumber = (): string => {
-  return NUMBERS[getDailyWordIndex() % NUMBERS.length];
+// Campaign Mode: Get word for specific level (1-1000)
+export const getWordForLevel = (level: number): string => {
+  // If level exceeds word list, loop back around or use deterministic random
+  const index = (level - 1) % WORDS.length;
+  return WORDS[index];
+};
+
+export const getNumberForLevel = (level: number): string => {
+  const index = (level - 1) % NUMBERS.length;
+  return NUMBERS[index];
 };
 
 export const getRandomWord = (): string => {

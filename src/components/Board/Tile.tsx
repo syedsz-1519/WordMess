@@ -1,43 +1,41 @@
+import React from 'react';
 import { motion } from 'framer-motion';
-import type { LetterState } from '../../utils/evaluateGuess';
+import { LetterState } from '../../utils/evaluateGuess';
 
 interface TileProps {
-  letter: string;
-  state: LetterState;
-  isCompleted: boolean;
-  position: number;
+  letter?: string;
+  state?: LetterState;
+  delay?: number;
 }
 
-export const Tile = ({ letter, state, isCompleted, position }: TileProps) => {
-  const getColors = () => {
-    switch (state) {
-      case 'correct': return 'bg-[var(--wm-correct)] text-[var(--wm-text)] border-[var(--wm-correct)]';
-      case 'present': return 'bg-[var(--wm-present)] text-[var(--wm-text)] border-[var(--wm-present)]';
-      case 'absent': return 'bg-[var(--wm-absent)] text-[var(--wm-text)] border-[var(--wm-absent)]';
-      default: return letter ? 'border-gray-500' : 'border-[var(--wm-border)]';
-    }
+export const Tile = ({ letter, state = 'empty', delay = 0 }: TileProps) => {
+  const isFilled = letter && letter !== '';
+  const isRevealed = state !== 'empty';
+
+  const variants = {
+    empty: 'border-2 border-[var(--wm-border)] bg-transparent text-transparent',
+    tbd: 'border-2 border-[var(--wm-text-muted)] bg-transparent text-[var(--wm-text)]',
+    absent: 'border-2 border-[var(--wm-absent)] bg-[var(--wm-absent)] text-white',
+    present: 'border-2 border-[var(--wm-present)] bg-[var(--wm-present)] text-white',
+    correct: 'border-2 border-[var(--wm-correct)] bg-[var(--wm-correct)] text-white',
   };
+
+  const currentState = isRevealed ? state : (isFilled ? 'tbd' : 'empty');
 
   return (
     <motion.div
       initial={false}
-      animate={
-        isCompleted
-          ? { rotateX: [0, 90, 0] }
-          : letter
-          ? { scale: [1, 1.08, 1] }
-          : {}
+      animate={isRevealed ? { rotateX: [0, 90, 0] } : (isFilled ? { scale: [1, 1.08, 1] } : {})}
+      transition={
+        isRevealed 
+          ? { duration: 0.5, delay, times: [0, 0.5, 1] } 
+          : { duration: 0.1 }
       }
-      transition={{
-        duration: isCompleted ? 0.3 : 0.1,
-        delay: isCompleted ? position * 0.08 : 0,
-      }}
-      className={`w-12 h-12 md:w-[62px] md:h-[62px] border-2 flex items-center justify-center text-2xl md:text-3xl font-bold uppercase rounded ${getColors()}`}
+      className={`w-[var(--tile-size-mobile)] h-[var(--tile-size-mobile)] sm:w-[var(--tile-size-desktop)] sm:h-[var(--tile-size-desktop)] flex items-center justify-center text-3xl font-bold uppercase rounded-[var(--tile-radius)] ${variants[currentState]}`}
     >
       <motion.span
-        initial={false}
-        animate={{ opacity: isCompleted ? [1, 0, 1] : 1 }}
-        transition={{ duration: 0.3, delay: position * 0.08 }}
+        animate={isRevealed ? { opacity: [1, 0, 1] } : {}}
+        transition={{ duration: 0.5, delay, times: [0, 0.5, 1] }}
       >
         {letter}
       </motion.span>

@@ -1,5 +1,6 @@
+import React from 'react';
 import { Key } from './Key';
-import type { LetterState } from '../../utils/evaluateGuess';
+import { LetterState } from '../../utils/evaluateGuess';
 
 interface KeyboardProps {
   onKeyPress: (key: string) => void;
@@ -7,37 +8,47 @@ interface KeyboardProps {
   guesses: string[];
 }
 
-export const Keyboard = ({ onKeyPress, results, guesses }: KeyboardProps) => {
-  const keys = [
-    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-    ['ENTER', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'BACKSPACE']
-  ];
+const KEYS = [
+  ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+  ['Enter', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', 'Backspace'],
+];
 
-  const keyStates: Record<string, LetterState> = {};
-  
+export const Keyboard = ({ onKeyPress, results, guesses }: KeyboardProps) => {
+  const charStatuses: Record<string, LetterState> = {};
+
   guesses.forEach((guess, i) => {
     guess.split('').forEach((letter, j) => {
-      const result = results[i][j];
-      const current = keyStates[letter];
+      const currentStatus = charStatuses[letter];
+      const newStatus = results[i]?.[j];
       
-      if (result === 'correct') {
-        keyStates[letter] = 'correct';
-      } else if (result === 'present' && current !== 'correct') {
-        keyStates[letter] = 'present';
-      } else if (result === 'absent' && current !== 'correct' && current !== 'present') {
-        keyStates[letter] = 'absent';
+      if (!newStatus) return;
+      
+      if (newStatus === 'correct') {
+        charStatuses[letter] = 'correct';
+      } else if (newStatus === 'present' && currentStatus !== 'correct') {
+        charStatuses[letter] = 'present';
+      } else if (newStatus === 'absent' && currentStatus !== 'correct' && currentStatus !== 'present') {
+        charStatuses[letter] = 'absent';
       }
     });
   });
 
   return (
-    <div className="w-full max-w-[500px] mx-auto px-2 mt-8 flex flex-col gap-2">
-      {keys.map((row, i) => (
-        <div key={i} className="flex justify-center gap-1 sm:gap-2">
+    <div className="w-full max-w-[var(--max-keyboard-width)] mx-auto px-2 pb-4 flex flex-col gap-2">
+      {KEYS.map((row, i) => (
+        <div key={i} className="flex justify-center gap-1.5 sm:gap-2">
+          {i === 1 && <div className="flex-[0.5]"></div>}
           {row.map((key) => (
-            <Key key={key} value={key} state={keyStates[key]} onClick={onKeyPress} />
+            <Key
+              key={key}
+              value={key}
+              onClick={onKeyPress}
+              status={charStatuses[key] || 'empty'}
+              flex={key.length > 1 ? 1.5 : 1}
+            />
           ))}
+          {i === 1 && <div className="flex-[0.5]"></div>}
         </div>
       ))}
     </div>

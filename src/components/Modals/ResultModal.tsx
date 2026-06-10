@@ -1,21 +1,34 @@
-import { motion } from 'framer-motion';
-import type { LetterState } from '../../utils/evaluateGuess';
+import React from 'react';
+import { Modal } from '../UI/Modal';
+import { Button } from '../UI/Button';
+import { LetterState } from '../../utils/evaluateGuess';
 import { generateShareText } from '../../utils/shareResult';
+import { useUserStore } from '../../store/userStore';
+import { GameId } from '../../constants/games';
 
 interface ResultModalProps {
+  isOpen: boolean;
+  onClose: () => void;
   status: 'won' | 'lost';
   guesses: LetterState[][];
   targetWord: string;
   hardMode: boolean;
-  onClose: () => void;
+  gameId: GameId;
+  onRestart: () => void;
+  onNextLevel: () => void;
 }
 
-export const ResultModal = ({ status, guesses, targetWord, hardMode, onClose }: ResultModalProps) => {
+export const ResultModal = ({ 
+  isOpen, onClose, status, guesses, targetWord, hardMode, gameId, onRestart, onNextLevel 
+}: ResultModalProps) => {
+  const { levels } = useUserStore();
+  const currentLevel = levels[gameId] || 1;
+
   const handleShare = () => {
-    const text = generateShareText(guesses, status === 'won', hardMode);
+    const text = generateShareText(`WORDLE MESS Level ${currentLevel}`, guesses, status === 'won', hardMode);
     if (navigator.share) {
       navigator.share({
-        title: 'WORDMESS Result',
+        title: 'WORDLE MESS Result',
         text: text
       }).catch(console.error);
     } else {
@@ -25,32 +38,34 @@ export const ResultModal = ({ status, guesses, targetWord, hardMode, onClose }: 
   };
 
   return (
-    <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-[var(--wm-surface)] p-6 rounded-lg text-center max-w-sm w-full border border-[var(--wm-border)]"
-      >
-        <h2 className="text-3xl font-black mb-2 uppercase">
-          {status === 'won' ? 'Magnificent!' : 'Game Over'}
-        </h2>
-        <p className="text-gray-300 mb-6 text-lg">The word was: <strong className="text-white tracking-widest">{targetWord}</strong></p>
+    <Modal isOpen={isOpen} onClose={onClose} title={status === 'won' ? 'Magnificent!' : 'Game Over'}>
+      <div className="text-center">
+        <p className="text-[var(--wm-text-muted)] mb-2 uppercase text-sm font-bold tracking-widest">
+          Level {currentLevel}
+        </p>
+        <p className="text-gray-300 mb-6 text-lg">
+          The word was: <strong className="text-white tracking-widest">{targetWord}</strong>
+        </p>
         
         <div className="flex flex-col gap-3">
-          <button 
-            onClick={handleShare}
-            className="w-full bg-[var(--wm-correct)] text-[var(--wm-bg-dark)] py-3 rounded font-bold uppercase tracking-wider hover:opacity-90 transition-opacity"
-          >
+          {status === 'won' ? (
+            <Button variant="primary" onClick={onNextLevel} fullWidth>
+              Next Level ➔
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={onRestart} fullWidth>
+              Restart Level ↻
+            </Button>
+          )}
+          
+          <Button variant="outline" onClick={handleShare} fullWidth>
             Share Result
-          </button>
-          <button 
-            onClick={onClose}
-            className="w-full border border-[var(--wm-border)] text-white py-3 rounded font-bold uppercase tracking-wider hover:bg-[var(--wm-border)] transition-colors"
-          >
+          </Button>
+          <Button variant="secondary" onClick={onClose} fullWidth>
             Close
-          </button>
+          </Button>
         </div>
-      </motion.div>
-    </div>
+      </div>
+    </Modal>
   );
 };
