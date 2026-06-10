@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Tile } from './Tile';
-import { LetterState } from '../../utils/evaluateGuess';
+import type { LetterState } from '../../utils/evaluateGuess';
 
 interface RowProps {
   guess: string;

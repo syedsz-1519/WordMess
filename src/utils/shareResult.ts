@@ -1,4 +1,4 @@
-import { LetterState } from './evaluateGuess';
+import type { LetterState } from './evaluateGuess';
 
 export const generateShareText = (
   guesses: LetterState[][],
@@ -6,7 +6,7 @@ export const generateShareText = (
   hardMode: boolean
 ): string => {
   const numGuesses = gameWon ? guesses.length : 'X';
-  const header = `WORDLE MESS · ${numGuesses}/6${hardMode ? '*' : ''} · wordle-mess.in\n\n`;
+  const header = `WORDMESS · ${numGuesses}/6${hardMode ? '*' : ''} · wordmess.in\n\n`;
   
   const grid = guesses.map(row => {
     return row.map(state => {

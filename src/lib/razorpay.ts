@@ -19,9 +19,9 @@ export const initiateCheckout = async (planId: string, onSuccess: () => void) =>
   // MOCK: In production, backend should generate an order ID.
   const options = {
     key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'mock_key',
-    amount: planId === 'plan_wordle_mess_plus' ? 9900 : 4900,
+    amount: planId === 'plan_wordmess_plus' ? 9900 : 4900,
     currency: 'INR',
-    name: 'WORDLE MESS',
+    name: 'WORDMESS',
     description: `Subscription for ${planId}`,
     handler: function (response: any) {
       console.log('Payment success', response);

@@ -1,4 +1,4 @@
-import { LetterState } from '../../utils/evaluateGuess';
+import type { LetterState } from '../../utils/evaluateGuess';
 
 interface KeyProps {
   value: string;

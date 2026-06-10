@@ -23,7 +23,7 @@ export interface UserStore extends UserData {
 
 export const useUserStore = create<UserStore>()(
   persist(
-    (set, get) => ({
+    (set: any, get: any) => ({
       uid: null,
       displayName: null,
       email: null,
@@ -33,8 +33,8 @@ export const useUserStore = create<UserStore>()(
       totalSolved: 0,
       streakShieldUsed: false,
       
-      setUser: (data) => set((state) => ({ ...state, ...data })),
-      incrementStreak: () => set((state) => {
+      setUser: (data: any) => set((state: any) => ({ ...state, ...data })),
+      incrementStreak: () => set((state: any) => {
         const newStreak = state.streak + 1;
         return {
           streak: newStreak,
@@ -42,7 +42,7 @@ export const useUserStore = create<UserStore>()(
           totalSolved: state.totalSolved + 1
         };
       }),
-      resetStreak: () => set((state) => {
+      resetStreak: () => set((state: any) => {
         if (state.plan !== 'free' && !state.streakShieldUsed) {
           // Auto use shield
           return { streakShieldUsed: true };
@@ -59,7 +59,7 @@ export const useUserStore = create<UserStore>()(
       }
     }),
     {
-      name: 'wordle-mess-user-storage',
+      name: 'wordmess-user-storage',
     }
   )
 );

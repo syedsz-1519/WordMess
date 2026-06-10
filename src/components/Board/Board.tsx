@@ -1,5 +1,5 @@
 import { Row } from './Row';
-import { LetterState } from '../../utils/evaluateGuess';
+import type { LetterState } from '../../utils/evaluateGuess';
 
 interface BoardProps {
   guesses: string[];

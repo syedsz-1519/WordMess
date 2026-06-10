@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { LetterState } from '../../utils/evaluateGuess';
+import type { LetterState } from '../../utils/evaluateGuess';
 
 interface TileProps {
   letter: string;

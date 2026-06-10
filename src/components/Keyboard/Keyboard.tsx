@@ -1,5 +1,5 @@
 import { Key } from './Key';
-import { LetterState } from '../../utils/evaluateGuess';
+import type { LetterState } from '../../utils/evaluateGuess';
 
 interface KeyboardProps {
   onKeyPress: (key: string) => void;

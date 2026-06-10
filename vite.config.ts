@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'WORDLE MESS',
-        short_name: 'WORDLE MESS',
+        name: 'WORDMESS',
+        short_name: 'WORDMESS',
         description: 'guess it. mess it. share it.',
         theme_color: '#121213',
         background_color: '#121213',

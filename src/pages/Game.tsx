@@ -7,7 +7,7 @@ import { Header } from '../components/Header/Header';
 
 export const Game = () => {
   const { guesses, results, currentGuess, status, onKeyPress, targetWord } = useGame();
-  const [isInvalid, setIsInvalid] = useState(false);
+  const [isInvalid] = useState(false);
 
   useKeyboard(onKeyPress);
 

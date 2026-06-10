@@ -1,7 +1,7 @@
 import { useUserStore } from '../store/userStore';
 
 export const useSubscription = () => {
-  const plan = useUserStore(state => state.plan);
+  const plan = useUserStore((state: any) => state.plan);
 
   return {
     isPro: plan === 'pro' || plan === 'plus',

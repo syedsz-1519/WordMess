@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { LetterState } from '../../utils/evaluateGuess';
+import type { LetterState } from '../../utils/evaluateGuess';
 import { generateShareText } from '../../utils/shareResult';
 
 interface ResultModalProps {
@@ -15,7 +15,7 @@ export const ResultModal = ({ status, guesses, targetWord, hardMode, onClose }: 
     const text = generateShareText(guesses, status === 'won', hardMode);
     if (navigator.share) {
       navigator.share({
-        title: 'WORDLE MESS Result',
+        title: 'WORDMESS Result',
         text: text
       }).catch(console.error);
     } else {

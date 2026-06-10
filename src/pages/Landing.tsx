@@ -4,7 +4,7 @@ import { useUserStore } from '../store/userStore';
 
 export const Landing = () => {
   const navigate = useNavigate();
-  const setUser = useUserStore(state => state.setUser);
+  const setUser = useUserStore((state: any) => state.setUser);
 
   const handleUpgrade = (plan: any) => {
     if (plan.price === 0) {

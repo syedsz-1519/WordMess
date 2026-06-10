@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { LetterState } from '../../utils/evaluateGuess';
+import type { LetterState } from '../../utils/evaluateGuess';
 
 interface ShareCardProps {
   guesses: LetterState[][];
@@ -13,7 +13,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(({ guesses }
       className="w-[1080px] h-[1080px] bg-[var(--wm-bg-dark)] flex flex-col items-center justify-center absolute -left-[9999px]"
     >
       <h1 className="text-8xl font-black tracking-widest mb-20 text-white">
-        WORDLE <span className="text-[#3B6D11]">MESS</span>
+        WORD <span className="text-[#3B6D11]">MESS</span>
       </h1>
       
       <div className="flex flex-col gap-4 mb-20">
@@ -30,7 +30,7 @@ export const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(({ guesses }
       </div>
 
       <p className="text-4xl text-gray-400 font-bold tracking-widest">
-        wordle-mess.in
+        wordmess.in
       </p>
     </div>
   );

@@ -13,7 +13,7 @@ export const Leaderboard = () => {
       try {
         const q = query(collection(db, 'leaderboard'), orderBy('streak', 'desc'), limit(50));
         const snapshot = await getDocs(q);
-        setLeaders(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setLeaders(snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() })));
       } catch (e) {
         console.error("Error fetching leaderboard", e);
       }
