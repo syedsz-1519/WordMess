@@ -1,42 +1,36 @@
-export const loadRazorpayScript = (): Promise<boolean> => {
-  return new Promise((resolve) => {
-    const script = document.createElement('script');
-    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-    script.onload = () => resolve(true);
-    script.onerror = () => resolve(false);
-    document.body.appendChild(script);
-  });
+// Mock Razorpay integration for Wordmess Hub
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
+import { db } from './firebase';
+
+export const initiateSubscription = async (planId: string, uid: string, onSuccess: () => void) => {
+  // In a real app, this would load the Razorpay SDK and open the checkout modal.
+  // For now, we mock a successful payment flow.
+  console.log(`Initiating Razorpay subscription for ${planId}`);
+  
+  setTimeout(async () => {
+    // Mock success
+    const plan = planId === 'plan_wm_plus' ? 'plus' : 'pro';
+    const userRef = doc(db, 'users', uid);
+    await setDoc(userRef, {
+      plan,
+      razorpaySubId: `sub_mock_${Math.random().toString(36).substring(7)}`
+    }, { merge: true });
+    
+    onSuccess();
+  }, 1000);
 };
 
-export const initiateCheckout = async (planId: string, onSuccess: () => void) => {
-  const res = await loadRazorpayScript();
+export const generateGiftCode = async (plan: 'pro' | 'plus', createdBy: string) => {
+  // Simulate Razorpay one-time payment for gift
+  const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const giftRef = doc(db, 'giftCodes', code);
   
-  if (!res) {
-    alert('Razorpay SDK failed to load');
-    return;
-  }
-
-  // MOCK: In production, backend should generate an order ID.
-  const options = {
-    key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'mock_key',
-    amount: planId === 'plan_wordmess_plus' ? 9900 : 4900,
-    currency: 'INR',
-    name: 'WORDMESS',
-    description: `Subscription for ${planId}`,
-    handler: function (response: any) {
-      console.log('Payment success', response);
-      // MOCK: Verify signature on backend
-      onSuccess();
-    },
-    prefill: {
-      name: 'Player',
-      email: 'player@example.com',
-    },
-    theme: {
-      color: '#3B6D11'
-    }
-  };
-
-  const paymentObject = new (window as any).Razorpay(options);
-  paymentObject.open();
+  await setDoc(giftRef, {
+    plan,
+    usedBy: null,
+    createdBy,
+    expiresAt: Timestamp.fromMillis(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+  });
+  
+  return code;
 };

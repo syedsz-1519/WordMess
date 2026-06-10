@@ -1,20 +1,24 @@
-import type { LetterState } from './evaluateGuess';
+import { LetterState } from './evaluateGuess';
+
+const EMOJI_MAP: Record<LetterState, string> = {
+  correct: '🟩',
+  present: '🟨',
+  absent: '⬛',
+  empty: '⬜',
+};
 
 export const generateShareText = (
+  gameName: string,
   guesses: LetterState[][],
-  gameWon: boolean,
-  hardMode: boolean
+  isWon: boolean,
+  hardMode: boolean = false
 ): string => {
-  const numGuesses = gameWon ? guesses.length : 'X';
-  const header = `WORDMESS · ${numGuesses}/6${hardMode ? '*' : ''} · wordmess.in\n\n`;
+  const attemptCount = isWon ? guesses.length : 'X';
+  const header = `${gameName} ${attemptCount}/6${hardMode ? '*' : ''}\n\n`;
   
-  const grid = guesses.map(row => {
-    return row.map(state => {
-      if (state === 'correct') return '🟩';
-      if (state === 'present') return '🟨';
-      return '⬜';
-    }).join('');
-  }).join('\n');
-  
-  return header + grid;
+  const grid = guesses
+    .map(row => row.map(state => EMOJI_MAP[state]).join(''))
+    .join('\n');
+    
+  return `${header}${grid}\n\nwordle-mess.in`;
 };
