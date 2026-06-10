@@ -1,17 +1,23 @@
 import { useUserStore } from '../store/userStore';
+import { PLAN_GATES, FeatureGate } from '../constants/plans';
 
 export const useSubscription = () => {
-  const plan = useUserStore((state: any) => state.plan);
+  const { plan } = useUserStore();
+
+  const isPro = plan === 'pro' || plan === 'plus';
+  const isPlus = plan === 'plus';
+
+  const canAccess = (feature: FeatureGate): boolean => {
+    const requiredTier = PLAN_GATES[feature];
+    if (requiredTier === 'plus') return isPlus;
+    if (requiredTier === 'pro') return isPro;
+    return true; // free
+  };
 
   return {
-    isPro: plan === 'pro' || plan === 'plus',
-    isPlus: plan === 'plus',
-    canUsePractice: plan === 'pro' || plan === 'plus',
-    canUseHardMode: plan === 'pro' || plan === 'plus',
-    canUseThemes: plan === 'pro' || plan === 'plus',
-    canUseLeaderboard: plan === 'plus',
-    canUseArchive: plan === 'plus',
-    canUseDuels: plan === 'plus',
-    canUseCanvasShare: plan === 'plus',
+    plan,
+    isPro,
+    isPlus,
+    canAccess,
   };
 };

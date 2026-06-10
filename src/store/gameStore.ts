@@ -1,80 +1,58 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { getDailyDateString } from '../utils/dailyWord';
-import type { LetterState } from '../utils/evaluateGuess';
+import { LetterState } from '../utils/evaluateGuess';
 
+// We make this flexible enough to support multiple boards (e.g. Double/Quad)
 export type GameStatus = 'playing' | 'won' | 'lost';
 
 export interface GameState {
-  guesses: string[];
+  guesses: string[]; // actual string guesses
   results: LetterState[][];
-  currentGuess: string;
   status: GameStatus;
   hardMode: boolean;
-  lastPlayedDate: string;
-  practiceMode: boolean;
-  
-  addGuess: (guess: string, result: LetterState[]) => void;
-  setCurrentGuess: (guess: string) => void;
-  setHardMode: (enabled: boolean) => void;
-  setPracticeMode: (enabled: boolean) => void;
-  resetGame: (isPractice: boolean) => void;
+  startTime: number | null;
 }
 
-export const useGameStore = create<GameState>()(
+export interface GameStore extends GameState {
+  addGuess: (guess: string, result: LetterState[]) => void;
+  setStatus: (status: GameStatus) => void;
+  resetGame: () => void;
+  setHardMode: (enabled: boolean) => void;
+}
+
+const initialState: GameState = {
+  guesses: [],
+  results: [],
+  status: 'playing',
+  hardMode: false,
+  startTime: null,
+};
+
+export const useGameStore = create<GameStore>()(
   persist(
-    (set: any) => ({
-      guesses: [] as string[],
-      results: [] as LetterState[][],
-      currentGuess: '',
-      status: 'playing' as GameStatus,
-      hardMode: false as boolean,
-      lastPlayedDate: getDailyDateString(),
-      practiceMode: false as boolean,
+    (set) => ({
+      ...initialState,
       
-      addGuess: (guess: any, result: any) => set((state: any) => {
-        const newGuesses = [...state.guesses, guess];
-        const newResults = [...state.results, result];
-        let newStatus = state.status;
-        
-        const isWin = result.every((r: any) => r === 'correct');
-        if (isWin) {
-          newStatus = 'won';
-        } else if (newGuesses.length >= 6) {
-          newStatus = 'lost';
-        }
-        
+      addGuess: (guess, result) => set((state) => {
+        const isFirstGuess = state.guesses.length === 0;
         return {
-          guesses: newGuesses,
-          results: newResults,
-          currentGuess: '',
-          status: newStatus,
-          lastPlayedDate: state.practiceMode ? state.lastPlayedDate : getDailyDateString(),
+          guesses: [...state.guesses, guess],
+          results: [...state.results, result],
+          startTime: isFirstGuess ? Date.now() : state.startTime
         };
       }),
       
-      setCurrentGuess: (guess: any) => set({ currentGuess: guess }),
-      setHardMode: (enabled: any) => set({ hardMode: enabled }),
-      setPracticeMode: (enabled: any) => set({ practiceMode: enabled }),
-      resetGame: (isPractice: any) => set({
-        guesses: [],
-        results: [],
-        currentGuess: '',
-        status: 'playing',
-        practiceMode: isPractice,
-        lastPlayedDate: isPractice ? getDailyDateString() : getDailyDateString()
-      }),
+      setStatus: (status) => set({ status }),
+      
+      resetGame: () => set((state) => ({ 
+        ...initialState, 
+        hardMode: state.hardMode // preserve hardmode setting across resets
+      })),
+      
+      setHardMode: (hardMode) => set({ hardMode }),
     }),
     {
       name: 'wordmess-game-storage',
-      partialize: (state: any) => ({
-        guesses: state.guesses,
-        results: state.results,
-        status: state.status,
-        hardMode: state.hardMode,
-        lastPlayedDate: state.lastPlayedDate,
-        practiceMode: state.practiceMode
-      })
     }
   )
 );
