@@ -6,6 +6,7 @@ export const GAMES = [
     tier: 'free',
     isNew: false,
     isDaily: true,
+    icon: '🟩',
   },
   {
     id: 'double',
@@ -14,6 +15,7 @@ export const GAMES = [
     tier: 'pro',
     isNew: false,
     isDaily: true,
+    icon: '👯',
   },
   {
     id: 'quad',
@@ -22,6 +24,7 @@ export const GAMES = [
     tier: 'plus',
     isNew: false,
     isDaily: true,
+    icon: '🍀',
   },
   {
     id: 'speed',
@@ -30,6 +33,7 @@ export const GAMES = [
     tier: 'pro',
     isNew: true,
     isDaily: false,
+    icon: '⚡',
   },
   {
     id: 'reverse',
@@ -38,6 +42,7 @@ export const GAMES = [
     tier: 'pro',
     isNew: true,
     isDaily: true,
+    icon: '⏪',
   },
   {
     id: 'number',
@@ -46,6 +51,7 @@ export const GAMES = [
     tier: 'free',
     isNew: false,
     isDaily: true,
+    icon: '🔢',
   },
   {
     id: 'duel',
@@ -54,6 +60,7 @@ export const GAMES = [
     tier: 'plus',
     isNew: false,
     isDaily: false,
+    icon: '⚔️',
   },
   {
     id: 'ai',
@@ -62,6 +69,7 @@ export const GAMES = [
     tier: 'plus',
     isNew: true,
     isDaily: true,
+    icon: '🤖',
   }
 ] as const;
 
