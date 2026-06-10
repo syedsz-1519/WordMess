@@ -31,7 +31,7 @@ export const Tile = ({ letter, state = 'empty', delay = 0 }: TileProps) => {
           ? { duration: 0.5, delay, times: [0, 0.5, 1] } 
           : { duration: 0.1 }
       }
-      className={`w-[var(--tile-size-mobile)] h-[var(--tile-size-mobile)] sm:w-[var(--tile-size-desktop)] sm:h-[var(--tile-size-desktop)] flex items-center justify-center text-3xl font-bold uppercase rounded-[var(--tile-radius)] ${variants[currentState]}`}
+      className={`w-[var(--tile-size-mobile)] h-[var(--tile-size-mobile)] sm:w-[var(--tile-size-desktop)] sm:h-[var(--tile-size-desktop)] flex items-center justify-center text-[calc(var(--tile-size-mobile)*0.5)] sm:text-[calc(var(--tile-size-desktop)*0.5)] font-bold uppercase rounded-[var(--tile-radius)] ${variants[currentState]}`}
     >
       <motion.span
         animate={isRevealed ? { opacity: [1, 0, 1] } : {}}

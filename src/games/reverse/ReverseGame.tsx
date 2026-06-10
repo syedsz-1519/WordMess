@@ -6,16 +6,16 @@ import { ResultModal } from '../../components/Modals/ResultModal';
 import { useKeyboard } from '../../hooks/useKeyboard';
 import { useUserStore } from '../../store/userStore';
 import { evaluateGuess, LetterState } from '../../utils/evaluateGuess';
-import { getWordForLevel } from '../../utils/dailyWord';
-import { MAX_GUESSES, WORD_LENGTH } from '../../utils/wordList';
-import { getCrypticHint } from '../../lib/gemini';
+import { getWordForLevel, getRandomWord } from '../../utils/dailyWord';
+import { WORD_LENGTH } from '../../utils/wordList';
 
-export const ClassicGame = () => {
+export const ReverseGame = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const level = parseInt(searchParams.get('level') || '1', 10);
   
-  const { addHistory, levels, nextLevel } = useUserStore();
+  const { addHistory, nextLevel } = useUserStore();
+  const MAX_GUESSES = 6;
   
   // Local Game State
   const [targetWord, setTargetWord] = useState('');
@@ -25,29 +25,28 @@ export const ClassicGame = () => {
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [isInvalid, setIsInvalid] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const [hint, setHint] = useState<string | null>(null);
-  const [loadingHint, setLoadingHint] = useState(false);
 
   // Initialize level
   useEffect(() => {
-    const word = getWordForLevel(level);
-    setTargetWord(word);
-    setGuesses([]);
-    setResults([]);
+    const target = getWordForLevel(level * 3);
+    setTargetWord(target);
+    
+    // Generate 2 clue words that are not the target word
+    let clue1 = getRandomWord();
+    while (clue1 === target) clue1 = getRandomWord();
+    
+    let clue2 = getRandomWord();
+    while (clue2 === target || clue2 === clue1) clue2 = getRandomWord();
+
+    const r1 = evaluateGuess(clue1, target);
+    const r2 = evaluateGuess(clue2, target);
+
+    setGuesses([clue1, clue2]);
+    setResults([r1, r2]);
     setCurrentGuess('');
     setGameStatus('playing');
     setShowResult(false);
-    setHint(null);
   }, [level]);
-
-  const handleGetHint = async () => {
-    if (loadingHint || gameStatus !== 'playing') return;
-    setLoadingHint(true);
-    const lastGuess = guesses[guesses.length - 1] || 'START';
-    const rawHint = await getCrypticHint(targetWord, lastGuess, guesses.length);
-    setHint(rawHint);
-    setLoadingHint(false);
-  };
 
   const submitGuess = () => {
     if (currentGuess.length !== WORD_LENGTH) {
@@ -56,7 +55,6 @@ export const ClassicGame = () => {
       return;
     }
 
-    // In a real app, validate against a dictionary here
     const result = evaluateGuess(currentGuess, targetWord);
     
     const newGuesses = [...guesses, currentGuess];
@@ -75,12 +73,12 @@ export const ClassicGame = () => {
         setShowResult(true);
         addHistory({
           date: new Date().toISOString(),
-          gameId: 'classic',
+          gameId: 'reverse',
           word: targetWord,
           guesses: isWin ? newGuesses.length : MAX_GUESSES,
           result: isWin ? 'won' : 'lost'
         });
-      }, 1500); // Wait for tile animations
+      }, 1500);
     }
   };
 
@@ -99,27 +97,41 @@ export const ClassicGame = () => {
   useKeyboard(handleKeyPress);
 
   const handleNextLevel = () => {
-    // If they won, unlock next level globally
-    if (gameStatus === 'won') {
-      nextLevel('classic');
-    }
-    navigate(`/game/classic?level=${level + 1}`);
+    nextLevel('reverse');
+    navigate(`/game/reverse?level=${level + 1}`);
   };
 
   const handleRestart = () => {
-    navigate(`/game/classic?level=${level}`);
-    const word = getWordForLevel(level);
-    setTargetWord(word);
-    setGuesses([]);
-    setResults([]);
+    navigate(`/game/reverse?level=${level}`);
+    const target = getWordForLevel(level * 3);
+    setTargetWord(target);
+    
+    let clue1 = getRandomWord();
+    while (clue1 === target) clue1 = getRandomWord();
+    let clue2 = getRandomWord();
+    while (clue2 === target || clue2 === clue1) clue2 = getRandomWord();
+
+    const r1 = evaluateGuess(clue1, target);
+    const r2 = evaluateGuess(clue2, target);
+
+    setGuesses([clue1, clue2]);
+    setResults([r1, r2]);
     setCurrentGuess('');
     setGameStatus('playing');
     setShowResult(false);
-    setHint(null);
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-between items-center py-6 w-full max-w-lg mx-auto relative">
+    <div className="flex-1 flex flex-col justify-between items-center py-6 w-full max-w-lg mx-auto">
+      <div className="text-center mb-2">
+        <span className="text-[10px] text-[var(--wm-text-muted)] font-bold uppercase tracking-widest bg-[var(--wm-surface)] px-3 py-1 rounded-full border border-[var(--wm-border)]">
+          Reverse Clue Mode
+        </span>
+        <p className="text-xs text-[var(--wm-text-muted)] mt-1.5 px-6">
+          Analyze the pre-filled guess words and colors, then find the target word!
+        </p>
+      </div>
+
       <div className="flex-1 flex items-center justify-center w-full">
         <Board 
           guesses={guesses}
@@ -130,17 +142,7 @@ export const ClassicGame = () => {
         />
       </div>
 
-      {hint && (
-        <div className="bg-[var(--wm-surface)] border border-yellow-500/30 p-3 rounded-xl max-w-sm w-11/12 mx-auto my-2 text-center relative shadow-lg shadow-yellow-500/5">
-          <div className="absolute top-1 right-2 text-xs text-gray-500 cursor-pointer hover:text-white" onClick={() => setHint(null)}>✕</div>
-          <div className="text-yellow-500 text-sm mb-0.5 flex items-center justify-center gap-1 font-bold">
-            <span>💡</span> <span className="text-[10px] uppercase tracking-widest text-[var(--wm-text-muted)]">AI Hint</span>
-          </div>
-          <p className="text-xs italic text-gray-200">"{hint}"</p>
-        </div>
-      )}
-
-      <div className="w-full mt-2">
+      <div className="w-full mt-4">
         <Keyboard 
           onKeyPress={handleKeyPress}
           guesses={guesses}
@@ -148,27 +150,14 @@ export const ClassicGame = () => {
         />
       </div>
 
-      <button
-        onClick={handleGetHint}
-        disabled={loadingHint || gameStatus !== 'playing'}
-        className="fixed bottom-24 right-4 z-40 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 text-[var(--wm-bg)] w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all transform hover:scale-105 active:scale-95"
-        title="Get AI Hint"
-      >
-        {loadingHint ? (
-          <div className="w-5 h-5 border-2 border-[var(--wm-bg)] border-t-transparent rounded-full animate-spin"></div>
-        ) : (
-          <span className="text-xl">💡</span>
-        )}
-      </button>
-
       <ResultModal 
         isOpen={showResult}
         onClose={() => setShowResult(false)}
-        status={gameStatus as 'won' | 'lost'}
+        status={gameStatus}
         guesses={results}
         targetWord={targetWord}
         hardMode={false}
-        gameId="classic"
+        gameId="reverse"
         onRestart={handleRestart}
         onNextLevel={handleNextLevel}
       />

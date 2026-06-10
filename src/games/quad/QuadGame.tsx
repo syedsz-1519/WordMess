@@ -9,38 +9,48 @@ import { evaluateGuess, LetterState } from '../../utils/evaluateGuess';
 import { getWordForLevel } from '../../utils/dailyWord';
 import { WORD_LENGTH } from '../../utils/wordList';
 
-export const DoubleGame = () => {
+export const QuadGame = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const level = parseInt(searchParams.get('level') || '1', 10);
   
-  const { addHistory, levels, nextLevel } = useUserStore();
-  const MAX_GUESSES = 7; // Double needs 7 guesses
+  const { addHistory, nextLevel } = useUserStore();
+  const MAX_GUESSES = 9; // Quad needs 9 guesses
   
   // Local Game State
-  const [targetWords, setTargetWords] = useState<string[]>(['', '']);
+  const [targetWords, setTargetWords] = useState<string[]>(['', '', '', '']);
   const [guesses, setGuesses] = useState<string[]>([]);
   const [results1, setResults1] = useState<LetterState[][]>([]);
   const [results2, setResults2] = useState<LetterState[][]>([]);
+  const [results3, setResults3] = useState<LetterState[][]>([]);
+  const [results4, setResults4] = useState<LetterState[][]>([]);
   const [currentGuess, setCurrentGuess] = useState('');
   
   const [board1Won, setBoard1Won] = useState(false);
   const [board2Won, setBoard2Won] = useState(false);
+  const [board3Won, setBoard3Won] = useState(false);
+  const [board4Won, setBoard4Won] = useState(false);
   
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [isInvalid, setIsInvalid] = useState(false);
   const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
-    const w1 = getWordForLevel(level * 2 - 1);
-    const w2 = getWordForLevel(level * 2);
-    setTargetWords([w1, w2]);
+    const w1 = getWordForLevel(level * 4 - 3);
+    const w2 = getWordForLevel(level * 4 - 2);
+    const w3 = getWordForLevel(level * 4 - 1);
+    const w4 = getWordForLevel(level * 4);
+    setTargetWords([w1, w2, w3, w4]);
     setGuesses([]);
     setResults1([]);
     setResults2([]);
+    setResults3([]);
+    setResults4([]);
     setCurrentGuess('');
     setBoard1Won(false);
     setBoard2Won(false);
+    setBoard3Won(false);
+    setBoard4Won(false);
     setGameStatus('playing');
     setShowResult(false);
   }, [level]);
@@ -54,21 +64,28 @@ export const DoubleGame = () => {
 
     const r1 = evaluateGuess(currentGuess, targetWords[0]);
     const r2 = evaluateGuess(currentGuess, targetWords[1]);
+    const r3 = evaluateGuess(currentGuess, targetWords[2]);
+    const r4 = evaluateGuess(currentGuess, targetWords[3]);
     
     const newGuesses = [...guesses, currentGuess];
     
-    // Once a board is won, we can visually lock it, but for simplicity we keep tracking
     const b1Win = board1Won || currentGuess === targetWords[0];
     const b2Win = board2Won || currentGuess === targetWords[1];
+    const b3Win = board3Won || currentGuess === targetWords[2];
+    const b4Win = board4Won || currentGuess === targetWords[3];
     
     setResults1([...results1, r1]);
     setResults2([...results2, r2]);
+    setResults3([...results3, r3]);
+    setResults4([...results4, r4]);
     setGuesses(newGuesses);
     setCurrentGuess('');
     setBoard1Won(b1Win);
     setBoard2Won(b2Win);
+    setBoard3Won(b3Win);
+    setBoard4Won(b4Win);
 
-    const isWin = b1Win && b2Win;
+    const isWin = b1Win && b2Win && b3Win && b4Win;
     const isLoss = newGuesses.length >= MAX_GUESSES && !isWin;
 
     if (isWin || isLoss) {
@@ -77,8 +94,8 @@ export const DoubleGame = () => {
         setShowResult(true);
         addHistory({
           date: new Date().toISOString(),
-          gameId: 'double',
-          word: `${targetWords[0]}, ${targetWords[1]}`,
+          gameId: 'quad',
+          word: `${targetWords.join(', ')}`,
           guesses: isWin ? newGuesses.length : MAX_GUESSES,
           result: isWin ? 'won' : 'lost'
         });
@@ -101,40 +118,53 @@ export const DoubleGame = () => {
   useKeyboard(handleKeyPress);
 
   const handleNextLevel = () => {
-    if (gameStatus === 'won') nextLevel('double');
-    navigate(`/game/double?level=${level + 1}`);
+    nextLevel('quad');
+    navigate(`/game/quad?level=${level + 1}`);
   };
 
   const handleRestart = () => {
-    navigate(`/game/double?level=${level}`);
-    const w1 = getWordForLevel(level * 2 - 1);
-    const w2 = getWordForLevel(level * 2);
-    setTargetWords([w1, w2]);
+    navigate(`/game/quad?level=${level}`);
+    const w1 = getWordForLevel(level * 4 - 3);
+    const w2 = getWordForLevel(level * 4 - 2);
+    const w3 = getWordForLevel(level * 4 - 1);
+    const w4 = getWordForLevel(level * 4);
+    setTargetWords([w1, w2, w3, w4]);
     setGuesses([]);
     setResults1([]);
     setResults2([]);
+    setResults3([]);
+    setResults4([]);
     setCurrentGuess('');
     setBoard1Won(false);
     setBoard2Won(false);
+    setBoard3Won(false);
+    setBoard4Won(false);
     setGameStatus('playing');
     setShowResult(false);
   };
 
   // Combine results for keyboard coloring
-  const combinedResults = results1.map((r, i) => {
-    return r.map((state, j) => {
-      const state2 = results2[i][j];
-      if (state === 'correct' || state2 === 'correct') return 'correct';
-      if (state === 'present' || state2 === 'present') return 'present';
-      return state;
+  const combinedResults = results1.map((_, i) => {
+    return Array(WORD_LENGTH).fill('absent').map((_, j) => {
+      const s1 = results1[i]?.[j];
+      const s2 = results2[i]?.[j];
+      const s3 = results3[i]?.[j];
+      const s4 = results4[i]?.[j];
+      
+      if (s1 === 'correct' || s2 === 'correct' || s3 === 'correct' || s4 === 'correct') return 'correct';
+      if (s1 === 'present' || s2 === 'present' || s3 === 'present' || s4 === 'present') return 'present';
+      return s1 || s2 || s3 || s4 || 'absent';
     });
   });
 
   return (
-    <div className="flex-1 flex flex-col justify-between items-center py-4 w-full max-w-2xl mx-auto double-game-container">
+    <div className="flex-1 flex flex-col justify-between items-center py-4 w-full max-w-4xl mx-auto quad-game-container">
       
-      <div className="flex-1 flex gap-2 sm:gap-6 items-center justify-center w-full">
-        <div className={`transition-opacity ${board1Won ? 'opacity-50' : 'opacity-100'}`}>
+      {/* 2x2 Responsive Grid */}
+      <div className="flex-1 grid grid-cols-2 gap-3 sm:gap-6 items-center justify-center w-full px-2 sm:px-4">
+        {/* Board 1 */}
+        <div className={`transition-opacity ${board1Won ? 'opacity-40 scale-[0.98]' : 'opacity-100'}`}>
+          <div className="text-[10px] text-center font-bold text-[var(--wm-text-muted)] mb-1 uppercase tracking-widest">Board 1</div>
           <Board 
             guesses={guesses}
             results={results1}
@@ -143,12 +173,39 @@ export const DoubleGame = () => {
             maxGuesses={MAX_GUESSES}
           />
         </div>
-        <div className={`transition-opacity ${board2Won ? 'opacity-50' : 'opacity-100'}`}>
+
+        {/* Board 2 */}
+        <div className={`transition-opacity ${board2Won ? 'opacity-40 scale-[0.98]' : 'opacity-100'}`}>
+          <div className="text-[10px] text-center font-bold text-[var(--wm-text-muted)] mb-1 uppercase tracking-widest">Board 2</div>
           <Board 
             guesses={guesses}
             results={results2}
             currentGuess={board2Won ? '' : currentGuess}
             isInvalid={isInvalid && !board2Won}
+            maxGuesses={MAX_GUESSES}
+          />
+        </div>
+
+        {/* Board 3 */}
+        <div className={`transition-opacity ${board3Won ? 'opacity-40 scale-[0.98]' : 'opacity-100'}`}>
+          <div className="text-[10px] text-center font-bold text-[var(--wm-text-muted)] mb-1 uppercase tracking-widest">Board 3</div>
+          <Board 
+            guesses={guesses}
+            results={results3}
+            currentGuess={board3Won ? '' : currentGuess}
+            isInvalid={isInvalid && !board3Won}
+            maxGuesses={MAX_GUESSES}
+          />
+        </div>
+
+        {/* Board 4 */}
+        <div className={`transition-opacity ${board4Won ? 'opacity-40 scale-[0.98]' : 'opacity-100'}`}>
+          <div className="text-[10px] text-center font-bold text-[var(--wm-text-muted)] mb-1 uppercase tracking-widest">Board 4</div>
+          <Board 
+            guesses={guesses}
+            results={results4}
+            currentGuess={board4Won ? '' : currentGuess}
+            isInvalid={isInvalid && !board4Won}
             maxGuesses={MAX_GUESSES}
           />
         </div>
@@ -165,11 +222,11 @@ export const DoubleGame = () => {
       <ResultModal 
         isOpen={showResult}
         onClose={() => setShowResult(false)}
-        status={gameStatus as 'won' | 'lost'}
+        status={gameStatus}
         guesses={combinedResults}
-        targetWord={`${targetWords[0]} & ${targetWords[1]}`}
+        targetWord={targetWords.join(' | ')}
         hardMode={false}
-        gameId="double"
+        gameId="quad"
         onRestart={handleRestart}
         onNextLevel={handleNextLevel}
       />

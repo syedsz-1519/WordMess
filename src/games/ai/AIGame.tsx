@@ -7,15 +7,16 @@ import { useKeyboard } from '../../hooks/useKeyboard';
 import { useUserStore } from '../../store/userStore';
 import { evaluateGuess, LetterState } from '../../utils/evaluateGuess';
 import { getWordForLevel } from '../../utils/dailyWord';
-import { MAX_GUESSES, WORD_LENGTH } from '../../utils/wordList';
+import { WORD_LENGTH } from '../../utils/wordList';
 import { getCrypticHint } from '../../lib/gemini';
 
-export const ClassicGame = () => {
+export const AIGame = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const level = parseInt(searchParams.get('level') || '1', 10);
   
-  const { addHistory, levels, nextLevel } = useUserStore();
+  const { addHistory, nextLevel } = useUserStore();
+  const MAX_GUESSES = 6;
   
   // Local Game State
   const [targetWord, setTargetWord] = useState('');
@@ -25,67 +26,81 @@ export const ClassicGame = () => {
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
   const [isInvalid, setIsInvalid] = useState(false);
   const [showResult, setShowResult] = useState(false);
-  const [hint, setHint] = useState<string | null>(null);
-  const [loadingHint, setLoadingHint] = useState(false);
+
+  // AI Clues list
+  const [aiClues, setAiClues] = useState<string[]>([]);
+  const [loadingClue, setLoadingClue] = useState(false);
 
   // Initialize level
   useEffect(() => {
-    const word = getWordForLevel(level);
+    const word = getWordForLevel(level * 6);
     setTargetWord(word);
     setGuesses([]);
     setResults([]);
     setCurrentGuess('');
+    setAiClues(["I will speak in riddles. Submit a word to unlock my first clue..."]);
     setGameStatus('playing');
     setShowResult(false);
-    setHint(null);
   }, [level]);
 
-  const handleGetHint = async () => {
-    if (loadingHint || gameStatus !== 'playing') return;
-    setLoadingHint(true);
-    const lastGuess = guesses[guesses.length - 1] || 'START';
-    const rawHint = await getCrypticHint(targetWord, lastGuess, guesses.length);
-    setHint(rawHint);
-    setLoadingHint(false);
-  };
-
-  const submitGuess = () => {
+  const submitGuess = async () => {
     if (currentGuess.length !== WORD_LENGTH) {
       setIsInvalid(true);
       setTimeout(() => setIsInvalid(false), 400);
       return;
     }
 
-    // In a real app, validate against a dictionary here
-    const result = evaluateGuess(currentGuess, targetWord);
+    const guessToEvaluate = currentGuess;
+    const result = evaluateGuess(guessToEvaluate, targetWord);
     
-    const newGuesses = [...guesses, currentGuess];
+    const newGuesses = [...guesses, guessToEvaluate];
     const newResults = [...results, result];
     
     setGuesses(newGuesses);
     setResults(newResults);
     setCurrentGuess('');
 
-    const isWin = currentGuess === targetWord;
+    const isWin = guessToEvaluate === targetWord;
     const isLoss = newGuesses.length >= MAX_GUESSES && !isWin;
 
-    if (isWin || isLoss) {
-      setGameStatus(isWin ? 'won' : 'lost');
+    if (isWin) {
+      setAiClues(prev => [...prev, `🎉 Brilliant! "${guessToEvaluate}" is the absolute truth.`]);
+      setGameStatus('won');
       setTimeout(() => {
         setShowResult(true);
         addHistory({
           date: new Date().toISOString(),
-          gameId: 'classic',
+          gameId: 'ai',
           word: targetWord,
-          guesses: isWin ? newGuesses.length : MAX_GUESSES,
-          result: isWin ? 'won' : 'lost'
+          guesses: newGuesses.length,
+          result: 'won'
         });
-      }, 1500); // Wait for tile animations
+      }, 1500);
+    } else {
+      setLoadingClue(true);
+      // Fetch cryptic hint from Gemini for this guess
+      const hint = await getCrypticHint(targetWord, guessToEvaluate, newGuesses.length);
+      setAiClues(prev => [...prev, `"${guessToEvaluate}": ${hint}`]);
+      setLoadingClue(false);
+
+      if (isLoss) {
+        setGameStatus('lost');
+        setTimeout(() => {
+          setShowResult(true);
+          addHistory({
+            date: new Date().toISOString(),
+            gameId: 'ai',
+            word: targetWord,
+            guesses: MAX_GUESSES,
+            result: 'lost'
+          });
+        }, 1500);
+      }
     }
   };
 
   const handleKeyPress = (key: string) => {
-    if (gameStatus !== 'playing') return;
+    if (gameStatus !== 'playing' || loadingClue) return;
 
     if (key === 'Enter') {
       submitGuess();
@@ -99,28 +114,44 @@ export const ClassicGame = () => {
   useKeyboard(handleKeyPress);
 
   const handleNextLevel = () => {
-    // If they won, unlock next level globally
-    if (gameStatus === 'won') {
-      nextLevel('classic');
-    }
-    navigate(`/game/classic?level=${level + 1}`);
+    nextLevel('ai');
+    navigate(`/game/ai?level=${level + 1}`);
   };
 
   const handleRestart = () => {
-    navigate(`/game/classic?level=${level}`);
-    const word = getWordForLevel(level);
+    navigate(`/game/ai?level=${level}`);
+    const word = getWordForLevel(level * 6);
     setTargetWord(word);
     setGuesses([]);
     setResults([]);
     setCurrentGuess('');
+    setAiClues(["I will speak in riddles. Submit a word to unlock my first clue..."]);
     setGameStatus('playing');
     setShowResult(false);
-    setHint(null);
   };
 
   return (
     <div className="flex-1 flex flex-col justify-between items-center py-6 w-full max-w-lg mx-auto relative">
-      <div className="flex-1 flex items-center justify-center w-full">
+      <div className="text-center mb-2">
+        <span className="text-[10px] text-[var(--wm-text-muted)] font-bold uppercase tracking-widest bg-[var(--wm-surface)] px-3 py-1 rounded-full border border-[var(--wm-border)]">
+          🤖 AI Oracle Mode
+        </span>
+      </div>
+
+      {/* Clues Panel */}
+      <div className="w-11/12 max-w-sm bg-[var(--wm-surface)] border border-purple-500/20 rounded-xl p-3 my-2 shadow-lg shadow-purple-500/5 flex flex-col gap-1.5 max-h-36 overflow-y-auto">
+        <div className="text-purple-400 text-xs font-black uppercase tracking-wider flex items-center justify-between sticky top-0 bg-[var(--wm-surface)] pb-1">
+          <span>Oracle Responses</span>
+          {loadingClue && <span className="animate-pulse text-[10px] text-gray-500">Consulting Gemini...</span>}
+        </div>
+        {aiClues.map((clue, idx) => (
+          <p key={idx} className="text-xs text-gray-300 leading-relaxed font-mono border-b border-[var(--wm-border)]/30 pb-1 last:border-b-0">
+            {clue}
+          </p>
+        ))}
+      </div>
+
+      <div className="flex-1 flex items-center justify-center w-full my-2">
         <Board 
           guesses={guesses}
           results={results}
@@ -130,17 +161,7 @@ export const ClassicGame = () => {
         />
       </div>
 
-      {hint && (
-        <div className="bg-[var(--wm-surface)] border border-yellow-500/30 p-3 rounded-xl max-w-sm w-11/12 mx-auto my-2 text-center relative shadow-lg shadow-yellow-500/5">
-          <div className="absolute top-1 right-2 text-xs text-gray-500 cursor-pointer hover:text-white" onClick={() => setHint(null)}>✕</div>
-          <div className="text-yellow-500 text-sm mb-0.5 flex items-center justify-center gap-1 font-bold">
-            <span>💡</span> <span className="text-[10px] uppercase tracking-widest text-[var(--wm-text-muted)]">AI Hint</span>
-          </div>
-          <p className="text-xs italic text-gray-200">"{hint}"</p>
-        </div>
-      )}
-
-      <div className="w-full mt-2">
+      <div className="w-full mt-4">
         <Keyboard 
           onKeyPress={handleKeyPress}
           guesses={guesses}
@@ -148,27 +169,14 @@ export const ClassicGame = () => {
         />
       </div>
 
-      <button
-        onClick={handleGetHint}
-        disabled={loadingHint || gameStatus !== 'playing'}
-        className="fixed bottom-24 right-4 z-40 bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 text-[var(--wm-bg)] w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all transform hover:scale-105 active:scale-95"
-        title="Get AI Hint"
-      >
-        {loadingHint ? (
-          <div className="w-5 h-5 border-2 border-[var(--wm-bg)] border-t-transparent rounded-full animate-spin"></div>
-        ) : (
-          <span className="text-xl">💡</span>
-        )}
-      </button>
-
       <ResultModal 
         isOpen={showResult}
         onClose={() => setShowResult(false)}
-        status={gameStatus as 'won' | 'lost'}
+        status={gameStatus}
         guesses={results}
         targetWord={targetWord}
         hardMode={false}
-        gameId="classic"
+        gameId="ai"
         onRestart={handleRestart}
         onNextLevel={handleNextLevel}
       />

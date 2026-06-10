@@ -5,6 +5,11 @@ import { GameLayout } from './pages/GameLayout';
 import { ClassicGame } from './games/classic/ClassicGame';
 import { DoubleGame } from './games/double/DoubleGame';
 import { SpeedGame } from './games/speed/SpeedGame';
+import { QuadGame } from './games/quad/QuadGame';
+import { ReverseGame } from './games/reverse/ReverseGame';
+import { NumberGame } from './games/number/NumberGame';
+import { DuelGame } from './games/duel/DuelGame';
+import { AIGame } from './games/ai/AIGame';
 import { SplashScreen } from './assets/logos/SplashScreen';
 
 function App() {
@@ -23,8 +28,11 @@ function App() {
           <Route path="classic" element={<ClassicGame />} />
           <Route path="double" element={<DoubleGame />} />
           <Route path="speed" element={<SpeedGame />} />
-          {/* We will add the other 5 games here as we build them */}
-          {/* For now, redirect any unimplemented game back to classic or hub */}
+          <Route path="quad" element={<QuadGame />} />
+          <Route path="reverse" element={<ReverseGame />} />
+          <Route path="number" element={<NumberGame />} />
+          <Route path="duel" element={<DuelGame />} />
+          <Route path="ai" element={<AIGame />} />
           <Route path="*" element={<Navigate to="/game/classic" replace />} />
         </Route>
 
