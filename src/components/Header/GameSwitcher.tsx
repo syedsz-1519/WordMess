@@ -1,6 +1,7 @@
 import React from 'react';
 import { GAMES, GameId } from '../../constants/games';
 import { useSubscription } from '../../hooks/useSubscription';
+import { FeatureGate } from '../../constants/plans';
 import { Lock } from 'lucide-react';
 
 interface GameSwitcherProps {
@@ -30,7 +31,7 @@ export const GameSwitcher = ({ currentGameId, onSelect, isOpen, setIsOpen }: Gam
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
           <div className="absolute top-full left-0 mt-2 w-56 bg-[var(--wm-surface)] border border-[var(--wm-border)] rounded-md shadow-xl z-50 overflow-hidden">
             {GAMES.map(game => {
-              const access = canAccess(game.id as any);
+              const access = canAccess(game.id as FeatureGate);
               return (
                 <button
                   key={game.id}

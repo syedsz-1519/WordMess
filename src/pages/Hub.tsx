@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { WordmarkLogo } from '../assets/logos/WordmarkLogo';
 import { GAMES, GameId } from '../constants/games';
+import { FeatureGate } from '../constants/plans';
 import { useSubscription } from '../hooks/useSubscription';
 import { useUserStore } from '../store/userStore';
 import { Badge } from '../components/UI/Badge';
@@ -20,8 +21,8 @@ export const Hub = () => {
   const [activeModal, setActiveModal] = useState<'settings' | 'stats' | 'achievements' | 'pro' | 'arena' | null>(null);
   const [selectedGame, setSelectedGame] = useState<GameId | null>(null);
 
-  const handleGameClick = (game: typeof GAMES[0]) => {
-    if (!canAccess(game.id as any)) {
+  const handleGameClick = (game: any) => {
+    if (!canAccess(game.id as FeatureGate)) {
       setActiveModal('pro');
     } else {
       setSelectedGame(game.id as GameId);
@@ -61,7 +62,7 @@ export const Hub = () => {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {GAMES.map(game => {
-          const isLocked = !canAccess(game.id as any);
+          const isLocked = !canAccess(game.id as FeatureGate);
           const currentLevel = levels[game.id as GameId] || 1;
           
           return (
