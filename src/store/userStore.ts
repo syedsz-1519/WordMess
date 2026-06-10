@@ -24,14 +24,14 @@ export interface UserStore extends UserData {
 export const useUserStore = create<UserStore>()(
   persist(
     (set: any, get: any) => ({
-      uid: null,
-      displayName: null,
-      email: null,
-      plan: 'free',
+      uid: null as string | null,
+      displayName: null as string | null,
+      email: null as string | null,
+      plan: 'free' as UserPlan,
       streak: 0,
       bestStreak: 0,
       totalSolved: 0,
-      streakShieldUsed: false,
+      streakShieldUsed: false as boolean,
       
       setUser: (data: any) => set((state: any) => ({ ...state, ...data })),
       incrementStreak: () => set((state: any) => {

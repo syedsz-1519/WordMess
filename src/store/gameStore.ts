@@ -24,13 +24,13 @@ export interface GameState {
 export const useGameStore = create<GameState>()(
   persist(
     (set: any) => ({
-      guesses: [],
-      results: [],
+      guesses: [] as string[],
+      results: [] as LetterState[][],
       currentGuess: '',
-      status: 'playing',
-      hardMode: false,
+      status: 'playing' as GameStatus,
+      hardMode: false as boolean,
       lastPlayedDate: getDailyDateString(),
-      practiceMode: false,
+      practiceMode: false as boolean,
       
       addGuess: (guess: any, result: any) => set((state: any) => {
         const newGuesses = [...state.guesses, guess];
