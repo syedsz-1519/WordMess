@@ -1,30 +1,30 @@
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { Game } from './pages/Game';
-import { Landing } from './pages/Landing';
-import { Leaderboard } from './pages/Leaderboard';
-import { useSubscription } from './hooks/useSubscription';
-
-const ProtectedRoute = ({ children, isAllowed }: { children: any, isAllowed: boolean }) => {
-  if (!isAllowed) return <Navigate to="/" replace />;
-  return children;
-};
+import { Hub } from './pages/Hub';
+import { GameLayout } from './pages/GameLayout';
+import { ClassicGame } from './games/classic/ClassicGame';
+import { SplashScreen } from './assets/logos/SplashScreen';
 
 function App() {
-  const { canUseLeaderboard } = useSubscription();
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/play" element={<Game />} />
-        <Route 
-          path="/leaderboard" 
-          element={
-            <ProtectedRoute isAllowed={canUseLeaderboard}>
-              <Leaderboard />
-            </ProtectedRoute>
-          } 
-        />
+        <Route path="/" element={<Hub />} />
+        
+        <Route path="/game" element={<GameLayout />}>
+          <Route path="classic" element={<ClassicGame />} />
+          {/* We will add the other 7 games here as we build them */}
+          {/* For now, redirect any unimplemented game back to classic or hub */}
+          <Route path="*" element={<Navigate to="/game/classic" replace />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
