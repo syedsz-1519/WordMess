@@ -1,7 +1,7 @@
-# WORDLE MESS - Game Design Document (GDD)
+# WORDMESS - Game Design Document (GDD)
 
 ## Core Concept
-"WORDLE MESS" is a chaotic, fun twist on Wordle. Players have 6 tries to guess a 5-letter word. It features deep monetization mechanics, streak protection, custom themes, and competitive global leaderboards.
+"WORDMESS" is a chaotic, fun twist on Wordle. Players have 6 tries to guess a 5-letter word. It features deep monetization mechanics, streak protection, custom themes, and competitive global leaderboards.
 
 ## Core Mechanics
 - 6 rows × 5 tiles board.

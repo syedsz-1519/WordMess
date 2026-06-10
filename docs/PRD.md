@@ -1,4 +1,4 @@
-# WORDLE MESS - Product Requirements Document (PRD)
+# WORDMESS - Product Requirements Document (PRD)
 
 ## Overview
 A web-based PWA word-guessing game with multi-tiered subscriptions, real-time Firebase syncing, and Razorpay checkout integration.
