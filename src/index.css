@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --wm-correct: #3B6D11;
+    --wm-present: #854F0B;
+    --wm-absent: #3a3a3c;
+    --wm-bg-dark: #121213;
+    --wm-bg-light: #f9f9f6;
+    --wm-surface: #1a1a1b;
+    --wm-border: #3a3a3c;
+    --wm-text: #ffffff;
+  }
+  
+  body {
+    @apply bg-[var(--wm-bg-dark)] text-[var(--wm-text)] font-sans antialiased overflow-x-hidden;
+  }
+}
