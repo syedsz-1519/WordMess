@@ -9,7 +9,7 @@ interface RowProps {
   isInvalid?: boolean;
 }
 
-export const Row = ({ guess, result }: RowProps) => {
+export const Row = ({ guess, result, isInvalid }: RowProps) => {
   const letters = guess.padEnd(5, ' ').split('');
   const defaultResult: LetterState[] = Array(5).fill('empty');
 
