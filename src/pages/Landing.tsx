@@ -1,14 +1,27 @@
 import { useNavigate } from 'react-router-dom';
 import { PLANS } from '../constants/plans';
+import { useUserStore } from '../store/userStore';
 
 export const Landing = () => {
   const navigate = useNavigate();
+  const setUser = useUserStore(state => state.setUser);
+
+  const handleUpgrade = (plan: any) => {
+    if (plan.price === 0) {
+      setUser({ plan: 'free' });
+    } else if (plan.name === 'Pro') {
+      setUser({ plan: 'pro' });
+    } else if (plan.name === 'Plus') {
+      setUser({ plan: 'plus' });
+    }
+    navigate('/play');
+  };
 
   return (
     <div className="min-h-screen bg-[var(--wm-bg-dark)] text-white p-6 flex flex-col items-center">
       <header className="mb-12 text-center mt-10">
         <h1 className="text-5xl font-black tracking-widest mb-4">
-          WORDLE <span className="text-[var(--wm-correct)]">MESS</span>
+          WORD <span className="text-[var(--wm-correct)]">MESS</span>
         </h1>
         <p className="text-xl text-gray-400">guess it. mess it. share it.</p>
       </header>
@@ -28,12 +41,12 @@ export const Landing = () => {
               ))}
             </ul>
             <button 
-              onClick={() => navigate(plan.price === 0 ? '/play' : '/checkout')}
+              onClick={() => handleUpgrade(plan)}
               className={`w-full py-3 rounded font-bold uppercase tracking-wider transition-opacity ${
                 plan.price > 0 ? 'bg-[var(--wm-correct)] text-[var(--wm-bg-dark)]' : 'border border-[var(--wm-border)] hover:bg-[var(--wm-border)]'
               }`}
             >
-              {plan.price === 0 ? 'Play Free' : 'Upgrade'}
+              {plan.price === 0 ? 'Play Free' : 'Upgrade (Demo)'}
             </button>
           </div>
         ))}

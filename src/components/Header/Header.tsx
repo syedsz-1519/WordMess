@@ -1,10 +1,12 @@
 import { Flame, Shield } from 'lucide-react';
 import { useStreak } from '../../hooks/useStreak';
 import { useSubscription } from '../../hooks/useSubscription';
+import { useNavigate } from 'react-router-dom';
 
 export const Header = () => {
   const { streak } = useStreak();
   const { isPro } = useSubscription();
+  const navigate = useNavigate();
 
   return (
     <header className="h-[50px] border-b border-[var(--wm-border)] flex items-center justify-between px-4">
@@ -20,7 +22,7 @@ export const Header = () => {
           <span>{streak}</span>
         </div>
         {!isPro && (
-          <button className="bg-[var(--wm-correct)] text-[var(--wm-bg-dark)] px-3 py-1 rounded text-sm font-bold">
+          <button onClick={() => navigate('/')} className="bg-[var(--wm-correct)] text-[var(--wm-bg-dark)] px-3 py-1 rounded text-sm font-bold">
             PRO
           </button>
         )}
