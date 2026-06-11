@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../store/userStore';
 import { AnagramLevel } from './campaignData';
 import { useCharacterEmotions } from '../hooks/useCharacterEmotions';
-import { Confetti } from '../engine/confetti';
+import { Confetti } from '../engine/Confetti';
 import { Star, ArrowLeft, Coins, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
