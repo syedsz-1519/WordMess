@@ -88,3 +88,64 @@ body {
   --row-gap: 2px;
   --tile-radius: 3px;
 }
+
+/* Beach Theme Rebirth Classes */
+.beach-background {
+  background: linear-gradient(135deg, #0284c7 0%, #06b6d4 30%, #fef08a 85%, #f97316 100%);
+  background-size: 200% 200%;
+  animation: beachFlow 12s ease infinite;
+}
+
+@keyframes beachFlow {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.beach-card {
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+.beach-tile-orange {
+  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  border: 2px solid #fdba74;
+  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.3);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.beach-tile-solved {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  border: 2px solid #a7f3d0;
+  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
+  color: white;
+}
+
+.beach-tile-placeholder {
+  background: rgba(255, 255, 255, 0.18);
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+}
+
+.beach-button-green {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.beach-button-green:hover {
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.word-grid-paper {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
+}

@@ -27,6 +27,7 @@ export interface UserState {
   notifTime: string;
   theme: string;
   levels: Record<GameId, number>; // Tracks level 1-1000 for each game
+  coins: number;
 }
 
 interface UserActions {
@@ -39,6 +40,8 @@ interface UserActions {
   setNotifTime: (time: string) => void;
   setTheme: (theme: string) => void;
   nextLevel: (gameId: GameId) => void;
+  addCoins: (amount: number) => void;
+  spendCoins: (amount: number) => boolean;
 }
 
 const initialState: UserState = {
@@ -63,7 +66,8 @@ const initialState: UserState = {
     number: 1,
     duel: 1,
     ai: 1
-  }
+  },
+  coins: 100
 };
 
 export const useUserStore = create<UserState & UserActions>()(
@@ -122,7 +126,18 @@ export const useUserStore = create<UserState & UserActions>()(
         return {
           levels: { ...state.levels, [gameId]: next }
         };
-      })
+      }),
+
+      addCoins: (amount) => set((state) => ({ coins: state.coins + amount })),
+
+      spendCoins: (amount) => {
+        const state = get();
+        if (state.coins >= amount) {
+          set({ coins: state.coins - amount });
+          return true;
+        }
+        return false;
+      }
     }),
     {
       name: 'wordmess-user-storage',
