@@ -7,45 +7,153 @@
   --color-surface: var(--wm-surface);
 }
 
-  :root {
-    --wm-correct: #3B6D11;
-    --wm-present: #854F0B;
-    --wm-absent: #3a3a3c;
-    --wm-bg: #121213;
-    --wm-surface: #1a1a1b;
-    --wm-border: #3a3a3c;
-    --wm-text: #ffffff;
-    --wm-text-muted: #818384;
+:root {
+  /* Dynamic ambient theme variables */
+  --wm-bg-start: #0a1628;
+  --wm-bg-mid: #1a3a5c;
+  --wm-bg-end: #2d6a4f;
+  
+  --wm-text: #ffffff;
+  --wm-text-muted: rgba(255, 255, 255, 0.6);
+  --wm-surface: rgba(255, 255, 255, 0.05);
+  --wm-border: rgba(255, 255, 255, 0.1);
 
-    /* Tile & Grid system variables */
-    --tile-size-mobile: 46px;
-    --tile-size-desktop: 56px;
-    --tile-gap: 5px;
-    --row-gap: 5px;
-    --tile-radius: 6px;
-    --max-keyboard-width: 512px;
-    
-    background-color: var(--wm-bg);
-    color: var(--wm-text);
-    font-family: 'Inter', sans-serif;
-  }
-
-/* View Transitions Expansion Plan */
-::view-transition-group(*),
-::view-transition-old(*),
-::view-transition-new(*) {
-  animation-duration: 0.25s;
-  animation-timing-function: cubic-bezier(0.19, 1, 0.22, 1);
+  /* System dimensions */
+  --tile-size-mobile: 46px;
+  --tile-size-desktop: 56px;
+  --tile-gap: 6px;
+  --row-gap: 6px;
+  --tile-radius: 12px;
+  --max-keyboard-width: 512px;
 }
 
-/* Utility classes for animations */
+/* Fullscreen Ambient Canvas Gradient Transition */
+body {
+  margin: 0;
+  padding: 0;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  background: linear-gradient(135deg, var(--wm-bg-start) 0%, var(--wm-bg-mid) 50%, var(--wm-bg-end) 100%);
+  background-size: 200% 200%;
+  transition: background 1.5s cubic-bezier(0.4, 0, 0.2, 1), --wm-bg-start 1.5s, --wm-bg-mid 1.5s, --wm-bg-end 1.5s;
+  min-height: 100vh;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  color: var(--wm-text);
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Particle Canvas Backdrop */
+#ambient-particle-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Glassmorphic Board container */
+.glass-board {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Glassmorphic Tiles */
+.glass-tile-empty {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  border-radius: var(--tile-radius);
+  transition: transform 0.1s ease;
+}
+
+.glass-tile-filled {
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #ffffff;
+  font-weight: 900;
+  border-radius: var(--tile-radius);
+}
+
+.glass-tile-correct {
+  background: rgba(74, 222, 128, 0.25) !important;
+  border: 2px solid #4ade80 !important;
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.4);
+  color: #ffffff;
+  font-weight: 900;
+  border-radius: var(--tile-radius);
+}
+
+.glass-tile-present {
+  background: rgba(251, 146, 60, 0.25) !important;
+  border: 2px solid #fb923c !important;
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.4);
+  color: #ffffff;
+  font-weight: 900;
+  border-radius: var(--tile-radius);
+}
+
+.glass-tile-absent {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.08) !important;
+  color: rgba(255, 255, 255, 0.3) !important;
+  border-radius: var(--tile-radius);
+}
+
+/* Keyboard Styling */
+.glass-key {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-radius: 8px;
+  font-weight: 700;
+  transition: background-color 0.15s ease, transform 0.05s ease;
+  user-select: none;
+}
+.glass-key:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+.glass-key:active {
+  transform: scale(0.95);
+}
+
+/* Modals */
+.glass-modal {
+  background: rgba(10, 22, 40, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+}
+
+/* Hub Game Cards */
+.glass-card {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+.glass-card:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* Animation utilities */
 .tile-pop {
-  animation: pop 0.1s ease-in-out;
+  animation: pop 0.12s ease-in-out;
 }
 
 @keyframes pop {
   0% { transform: scale(1); }
-  50% { transform: scale(1.08); }
+  50% { transform: scale(1.15); }
   100% { transform: scale(1); }
 }
 
@@ -55,8 +163,8 @@
 
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-10px); }
-  40%, 80% { transform: translateX(10px); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
 }
 
 .row-bounce {
@@ -65,75 +173,29 @@
 
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
+  50% { transform: translateY(-16px); }
 }
 
-/* PWA minimal styling */
-body {
-  overscroll-behavior-y: none;
-  -webkit-tap-highlight-color: transparent;
+/* Tile Micro-Particle Dots */
+.micro-dot {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #4ade80;
+  pointer-events: none;
+  animation: microSpread 0.4s ease-out forwards;
 }
 
-/* Custom scaling overrides for multi-board game modes */
-.double-game-container {
-  --tile-size-mobile: 34px;
-  --tile-gap: 4px;
-  --row-gap: 4px;
-  --tile-radius: 4px;
-}
-
-.quad-game-container {
-  --tile-size-mobile: 24px;
-  --tile-gap: 2px;
-  --row-gap: 2px;
-  --tile-radius: 3px;
-}
-
-/* Beach Theme Rebirth Classes */
-.beach-background {
-  background: linear-gradient(135deg, #0284c7 0%, #06b6d4 30%, #fef08a 85%, #f97316 100%);
-  background-size: 200% 200%;
-  animation: beachFlow 12s ease infinite;
-}
-
-@keyframes beachFlow {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-.beach-card {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-}
-
-.beach-tile-orange {
-  background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
-  border: 2px solid #fdba74;
-  box-shadow: 0 4px 10px rgba(249, 115, 22, 0.3);
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.beach-tile-solved {
-  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
-  border: 2px solid #a7f3d0;
-  box-shadow: 0 4px 10px rgba(5, 150, 105, 0.3);
-  color: white;
-}
-
-.beach-tile-placeholder {
-  background: rgba(255, 255, 255, 0.18);
-  border: 2px dashed rgba(255, 255, 255, 0.4);
-}
-
-.beach-button-green {
-  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-}
-
-.beach-button-green:hover {
-  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+@keyframes microSpread {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--dx), var(--dy)) scale(0.2);
+    opacity: 0;
+  }
 }
 
 .animate-float {
@@ -145,7 +207,33 @@ body {
   50% { transform: translateY(-8px); }
 }
 
-.word-grid-paper {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px);
-  background-size: 20px 20px;
+/* Horizontal scrollable custom scrollbar */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Wave animation at bottom of Campaign mode */
+.campaign-wave-bg {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+  transform: rotate(180deg);
+}
+
+.campaign-wave-bg svg {
+  position: relative;
+  display: block;
+  width: calc(150% + 1.3px);
+  height: 80px;
+}
+
+.campaign-wave-bg .shape-fill {
+  fill: rgba(255, 255, 255, 0.04);
 }

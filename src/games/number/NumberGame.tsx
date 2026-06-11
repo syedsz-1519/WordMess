@@ -1,236 +1,230 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../../store/userStore';
-import { NUMBER_SEARCH_LEVELS } from '../../constants/levels';
-import { playClick, playSuccess, playFailure, playWin } from '../../utils/audio';
+import { useCharacterStore } from '../../store/characterStore';
+import { useCharacterEmotions } from '../../hooks/useCharacterEmotions';
+import { getDailyNumber } from '../../utils/dailyNumber';
+import { evaluateNumber } from '../../utils/evaluateNumber';
+import { LetterState } from '../../utils/evaluateGuess';
+import { Board } from '../../components/Board/Board';
+import { NumPad } from '../../components/Keyboard/NumPad';
+import { Wordy } from '../../assets/characters/Wordy';
+import { Messy } from '../../assets/characters/Messy';
+import { SpeechBubble } from '../../assets/characters/SpeechBubble';
 import { ResultModal } from '../../components/Modals/ResultModal';
-import { Volume2, VolumeX, ArrowLeft, Coins, Star } from 'lucide-react';
+import { Confetti } from '../../engine/Confetti';
+import { ArrowLeft, Coins, Flame, Star, Timer } from 'lucide-react';
 
 export const NumberGame = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const rawLevel = parseInt(searchParams.get('level') || '1', 10);
-  const levelIndex = (rawLevel - 1) % NUMBER_SEARCH_LEVELS.length;
-  const levelData = NUMBER_SEARCH_LEVELS[levelIndex];
+  const user = useUserStore();
+  const emotions = useCharacterEmotions();
 
-  const { coins, addCoins, spendCoins, nextLevel } = useUserStore();
+  const {
+    wordyEmotion,
+    messyEmotion,
+    wordyBubble,
+    messyBubble,
+    triggerWordy,
+    triggerMessy,
+    resetMascots
+  } = useCharacterStore();
 
-  const [isMuted, setIsMuted] = useState(false);
-
-  // Gameplay State
-  const [foundNumbers, setFoundNumbers] = useState<string[]>([]);
-  const [startCell, setStartCell] = useState<{ r: number; c: number } | null>(null);
-  const [endCell, setEndCell] = useState<{ r: number; c: number } | null>(null);
-  const [selectedCells, setSelectedCells] = useState<{ r: number; c: number }[]>([]);
-  const [catSpeech, setCatSpeech] = useState('Welcome! Find all the hidden 5-digit number patterns!');
-  const [showResult, setShowResult] = useState(false);
+  const [targetNumber, setTargetNumber] = useState('');
+  const [guesses, setGuesses] = useState<string[]>([]);
+  const [results, setResults] = useState<LetterState[][]>([]);
+  const [currentGuess, setCurrentGuess] = useState('');
+  const [isInvalid, setIsInvalid] = useState(false);
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [timeToNext, setTimeToNext] = useState('');
 
   useEffect(() => {
-    setFoundNumbers([]);
-    setStartCell(null);
-    setEndCell(null);
-    setSelectedCells([]);
-    setCatSpeech('Look closely for the digit codes! Tap the start and end of the numbers!');
-    setGameStatus('playing');
-    setShowResult(false);
-  }, [rawLevel]);
+    const num = getDailyNumber();
+    setTargetNumber(num);
+    resetMascots();
 
-  const getLineCells = (start: { r: number; c: number }, end: { r: number; c: number }) => {
-    const cells: { r: number; c: number }[] = [];
-    const dr = end.r - start.r;
-    const dc = end.c - start.c;
-    
-    const steps = Math.max(Math.abs(dr), Math.abs(dc));
-    if (steps === 0) return [start];
-
-    const isHorizontal = dr === 0;
-    const isVertical = dc === 0;
-    const isDiagonal = Math.abs(dr) === Math.abs(dc);
-
-    if (!isHorizontal && !isVertical && !isDiagonal) return [];
-
-    const stepR = dr / steps;
-    const stepC = dc / steps;
-
-    for (let i = 0; i <= steps; i++) {
-      cells.push({
-        r: Math.round(start.r + i * stepR),
-        c: Math.round(start.c + i * stepC)
-      });
+    // Check history
+    const todayStr = new Date().toDateString();
+    const playedToday = user.history.find(h => h.date === todayStr && h.gameId === 'number');
+    if (playedToday) {
+      setGuesses(Array(playedToday.guesses).fill(num));
+      const mockResult = evaluateNumber(num, num);
+      setResults(Array(playedToday.guesses).fill(mockResult));
+      setGameStatus(playedToday.result);
+      setShowResultModal(true);
     }
-    return cells;
-  };
 
-  const handleCellClick = (r: number, c: number) => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      const tomorrow = new Date();
+      tomorrow.setHours(24, 0, 0, 0);
+      const diff = tomorrow.getTime() - now.getTime();
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff / (1000 * 60)) % 60);
+      const secs = Math.floor((diff / 1000) % 60);
+      
+      setTimeToNext(
+        `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      );
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleKeyPress = (key: string) => {
     if (gameStatus !== 'playing') return;
-    if (!isMuted) playClick();
 
-    if (!startCell) {
-      setStartCell({ r, c });
-      setSelectedCells([{ r, c }]);
-    } else if (!endCell) {
-      const line = getLineCells(startCell, { r, c });
-      if (line.length > 0) {
-        const word = line.map(cell => levelData.grid[cell.r][cell.c]).join('');
-        const revWord = [...word].reverse().join('');
-        
-        let matchedWord = '';
-        if (levelData.targetWords.includes(word) && !foundNumbers.includes(word)) {
-          matchedWord = word;
-        } else if (levelData.targetWords.includes(revWord) && !foundNumbers.includes(revWord)) {
-          matchedWord = revWord;
-        }
-
-        if (matchedWord) {
-          const newFound = [...foundNumbers, matchedWord];
-          setFoundNumbers(newFound);
-          if (!isMuted) playSuccess();
-          addCoins(10);
-          setCatSpeech(`Fantastic! Spelled code ${matchedWord}! 🪙`);
-          
-          if (newFound.length === levelData.targetWords.length) {
-            setGameStatus('won');
-            if (!isMuted) playWin();
-            setTimeout(() => setShowResult(true), 800);
-          }
-        } else {
-          if (!isMuted) playFailure();
-          setCatSpeech('No match. Find lines of numbers!');
-        }
-      }
-      setStartCell(null);
-      setSelectedCells([]);
+    if (key === 'Enter') {
+      submitGuess();
+    } else if (key === 'Backspace') {
+      setCurrentGuess((prev) => prev.slice(0, -1));
+      emotions.onKeyPress();
+    } else if (/^[1-9]$/.test(key) && currentGuess.length < 5) {
+      setCurrentGuess((prev) => prev + key);
+      emotions.onKeyPress();
     }
   };
 
-  const handleHoverCell = (r: number, c: number) => {
-    if (startCell && !endCell) {
-      const line = getLineCells(startCell, { r, c });
-      if (line.length > 0) {
-        setSelectedCells(line);
+  // Physical keyboard numpad listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      handleKeyPress(e.key);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentGuess, gameStatus]);
+
+  const submitGuess = () => {
+    if (currentGuess.length !== 5) {
+      emotions.onInvalid();
+      setIsInvalid(true);
+      setTimeout(() => setIsInvalid(false), 400);
+      return;
+    }
+
+    const evaluation = evaluateNumber(currentGuess, targetNumber);
+    const newGuesses = [...guesses, currentGuess];
+    const newResults = [...results, evaluation];
+
+    setGuesses(newGuesses);
+    setResults(newResults);
+    setCurrentGuess('');
+
+    if (currentGuess === targetNumber) {
+      setGameStatus('won');
+      emotions.onWin(currentGuess);
+      user.incrementStreak();
+      user.addCoins(50);
+      user.addHistory({
+        date: new Date().toDateString(),
+        gameId: 'number',
+        word: targetNumber,
+        guesses: newGuesses.length,
+        result: 'won'
+      });
+      setTimeout(() => setShowResultModal(true), 1200);
+    } else if (newGuesses.length >= 6) {
+      setGameStatus('lost');
+      emotions.onLoss(targetNumber);
+      user.resetStreak();
+      user.addHistory({
+        date: new Date().toDateString(),
+        gameId: 'number',
+        word: targetNumber,
+        guesses: newGuesses.length,
+        result: 'lost'
+      });
+      setTimeout(() => setShowResultModal(true), 1200);
+    } else {
+      const hasPartiallyCorrect = evaluation.some(r => r === 'correct' || r === 'present');
+      if (hasPartiallyCorrect) {
+        emotions.onCorrect(currentGuess);
+      } else {
+        emotions.onIncorrect();
       }
     }
   };
-
-  const isCellSelected = (r: number, c: number) => {
-    return selectedCells.some(cell => cell.r === r && cell.c === c);
-  };
-
-  const handleNextLevel = () => {
-    nextLevel('number');
-    navigate(`/game/number?level=${rawLevel + 1}`);
-  };
-
-  const handleRestart = () => {
-    setFoundNumbers([]);
-    setStartCell(null);
-    setEndCell(null);
-    setSelectedCells([]);
-    setCatSpeech('Reset! Spot those digits!');
-    setGameStatus('playing');
-    setShowResult(false);
-  };
-
-  const percentSolved = foundNumbers.length / levelData.targetWords.length;
-  const starsCount = percentSolved === 1 ? 3 : percentSolved >= 0.6 ? 2 : percentSolved >= 0.3 ? 1 : 0;
 
   return (
-    <div className="flex-1 flex flex-col justify-between items-center py-4 w-full max-w-lg mx-auto beach-background min-h-screen text-white select-none px-4">
+    <div className="flex-1 flex flex-col justify-between items-center py-4 w-full max-w-lg mx-auto min-h-[calc(100vh-60px)] px-4">
+      <Confetti active={gameStatus === 'won'} word="12345" />
+
       {/* Top Navbar */}
-      <div className="w-full flex justify-between items-center bg-black/20 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-        <button onClick={() => navigate('/')} className="hover:scale-105 active:scale-95 transition-transform p-1.5 bg-white/10 rounded-xl">
-          <ArrowLeft size={20} />
+      <div className="w-full flex justify-between items-center bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-white/10 z-10">
+        <button onClick={() => navigate('/hub')} className="hover:scale-105 active:scale-95 transition-transform p-1.5 bg-white/10 rounded-xl">
+          <ArrowLeft size={18} />
         </button>
-        <div className="flex items-center gap-1.5">
-          <span className="font-black tracking-widest text-sm uppercase">Number Lvl {rawLevel}</span>
-          <div className="flex gap-0.5 text-yellow-300">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Star key={i} size={14} fill={i < starsCount ? 'currentColor' : 'none'} />
-            ))}
-          </div>
+        <div className="flex flex-col items-center">
+          <span className="font-black tracking-widest text-xs uppercase text-emerald-400">Number Mess</span>
+          {gameStatus !== 'playing' && (
+            <span className="text-[10px] text-white/50 font-bold flex items-center gap-1 mt-0.5">
+              <Timer size={10} /> Next in {timeToNext}
+            </span>
+          )}
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setIsMuted(!isMuted)} className="p-1.5 bg-white/10 rounded-xl hover:scale-105 active:scale-95 transition-transform">
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
-          <div className="flex items-center gap-1 font-bold text-yellow-300 bg-yellow-500/20 px-2.5 py-1 rounded-xl border border-yellow-500/30">
-            <Coins size={16} className="animate-bounce" />
-            <span className="text-xs">{coins}</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 font-bold text-orange-400 bg-orange-500/10 px-2.5 py-1 rounded-xl text-xs">
+            <Flame size={14} />
+            <span>{user.streak}</span>
+          </div>
+          <div className="flex items-center gap-1 font-bold text-yellow-300 bg-yellow-500/10 px-2.5 py-1 rounded-xl text-xs">
+            <Coins size={14} className="animate-bounce" />
+            <span>{user.coins}</span>
           </div>
         </div>
       </div>
 
-      {/* Guide Cat bubble */}
-      <div className="w-full flex gap-3 items-center my-3 max-w-sm">
-        <div className="flex-1 bg-white text-slate-800 rounded-2xl p-2.5 text-xs font-semibold relative shadow-lg shadow-black/10 border-2 border-sky-300">
-          <div className="absolute top-1/2 -right-2 w-4 h-4 bg-white border-r-2 border-b-2 border-sky-300 rotate-45 transform -translate-y-1/2"></div>
-          {catSpeech}
+      {/* Board */}
+      <div className="flex-1 flex items-center justify-center py-6">
+        <Board 
+          guesses={guesses} 
+          results={results} 
+          currentGuess={currentGuess} 
+          isInvalid={isInvalid} 
+        />
+      </div>
+
+      {/* Mascot indicators */}
+      <div className="w-full flex justify-between px-4 mb-4 items-end z-10">
+        <div className="relative cursor-pointer" onClick={() => triggerWordy('cheer', 'random')}>
+          <SpeechBubble text={wordyBubble} />
+          <Wordy emotion={wordyEmotion} size={62} />
         </div>
-        <div className="w-14 h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center text-4xl animate-float">
-          🐱
+        <div className="relative cursor-pointer" onClick={() => triggerMessy('laugh', 'random')}>
+          <SpeechBubble text={messyBubble} />
+          <Messy emotion={messyEmotion} size={62} />
         </div>
       </div>
 
-      {/* Grid Canvas */}
-      <div className="w-full max-w-[340px] aspect-square bg-sky-950/40 backdrop-blur-md border border-white/20 rounded-3xl p-3 shadow-2xl relative overflow-hidden flex flex-col gap-1 select-none">
-        {levelData.grid.map((row, rIdx) => (
-          <div key={rIdx} className="flex-1 flex gap-1">
-            {row.map((char, cIdx) => {
-              const isSelected = isCellSelected(rIdx, cIdx);
-              return (
-                <button
-                  key={cIdx}
-                  onMouseDown={() => handleCellClick(rIdx, cIdx)}
-                  onTouchStart={() => handleCellClick(rIdx, cIdx)}
-                  onMouseEnter={() => handleHoverCell(rIdx, cIdx)}
-                  className={`flex-1 aspect-square rounded-lg font-black text-sm flex items-center justify-center transition-all ${
-                    isSelected
-                      ? 'bg-amber-400 border border-amber-300 text-sky-950 scale-105 shadow-md shadow-amber-400/30'
-                      : 'bg-white/10 hover:bg-white/20 text-white border border-white/5 active:scale-95'
-                  }`}
-                >
-                  {char}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-
-      {/* Targets List */}
-      <div className="w-full mt-4 flex-1 flex flex-col justify-end">
-        <div className="text-[10px] uppercase font-black tracking-widest text-sky-200/80 mb-2 text-center">Numbers to Find ({foundNumbers.length}/{levelData.targetWords.length})</div>
-        <div className="flex flex-wrap justify-center gap-1.5 max-h-36 overflow-y-auto pb-4">
-          {levelData.targetWords.map((word) => {
-            const isSolved = foundNumbers.includes(word);
-            return (
-              <span
-                key={word}
-                className={`text-[10px] font-black tracking-wider uppercase px-2.5 py-1.5 rounded-full border transition-all ${
-                  isSolved
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 line-through decoration-2 opacity-60'
-                    : 'bg-white/5 text-white/90 border-white/10 hover:border-white/30'
-                }`}
-              >
-                {word}
-              </span>
-            );
-          })}
-        </div>
+      {/* Number Pad Keypad */}
+      <div className="w-full z-10">
+        <NumPad 
+          onKeyPress={handleKeyPress} 
+          guesses={guesses} 
+          results={results} 
+        />
       </div>
 
       <ResultModal 
-        isOpen={showResult}
-        onClose={() => setShowResult(false)}
-        status={gameStatus}
-        guesses={[]}
-        targetWord={`all codes cracked!`}
-        hardMode={false}
-        gameId="number"
-        onRestart={handleRestart}
-        onNextLevel={handleNextLevel}
+        isOpen={showResultModal} 
+        onClose={() => setShowResultModal(false)} 
+        status={gameStatus} 
+        guesses={guesses} 
+        targetWord={targetNumber} 
+        hardMode={false} 
+        gameId="number" 
+        onRestart={() => {
+          setGuesses([]);
+          setResults([]);
+          setCurrentGuess('');
+          setGameStatus('playing');
+          setShowResultModal(false);
+        }}
       />
     </div>
   );
 };
+
+export default NumberGame;

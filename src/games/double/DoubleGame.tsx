@@ -1,265 +1,288 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../../store/userStore';
-import { ANAGRAM_LEVELS } from '../../constants/levels';
-import { playClick, playSuccess, playFailure, playWin } from '../../utils/audio';
+import { useCharacterStore } from '../../store/characterStore';
+import { useCharacterEmotions } from '../../hooks/useCharacterEmotions';
+import { getDailyWord, getDailyWordIndex } from '../../utils/dailyWord';
+import { evaluateGuess, LetterState } from '../../utils/evaluateGuess';
+import { Board } from '../../components/Board/Board';
+import { Keyboard } from '../../components/Keyboard/Keyboard';
+import { Wordy } from '../../assets/characters/Wordy';
+import { Messy } from '../../assets/characters/Messy';
+import { SpeechBubble } from '../../assets/characters/SpeechBubble';
 import { ResultModal } from '../../components/Modals/ResultModal';
-import { Volume2, VolumeX, ArrowLeft, Coins, Star, RefreshCw, Sparkles } from 'lucide-react';
+import { Confetti } from '../../engine/Confetti';
+import { ArrowLeft, Coins, Flame, Timer } from 'lucide-react';
+import { WORDS } from '../../utils/wordList';
 
 export const DoubleGame = () => {
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const rawLevel = parseInt(searchParams.get('level') || '1', 10);
-  
-  // Load 2 distinct big words for double mode
-  const l1Index = ((rawLevel - 1) * 2) % ANAGRAM_LEVELS.length;
-  const l2Index = ((rawLevel - 1) * 2 + 1) % ANAGRAM_LEVELS.length;
-  const level1Data = ANAGRAM_LEVELS[l1Index];
-  const level2Data = ANAGRAM_LEVELS[l2Index];
+  const user = useUserStore();
+  const emotions = useCharacterEmotions();
 
-  const { coins, addCoins, spendCoins, nextLevel } = useUserStore();
-  const [isMuted, setIsMuted] = useState(false);
+  const {
+    wordyEmotion,
+    messyEmotion,
+    wordyBubble,
+    messyBubble,
+    triggerWordy,
+    triggerMessy,
+    resetMascots
+  } = useCharacterStore();
 
-  // Game States
-  const [foundWords1, setFoundWords1] = useState<string[]>([]);
-  const [foundWords2, setFoundWords2] = useState<string[]>([]);
-  
-  // Selected letters state
-  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
-  const [currentBoard, setCurrentBoard] = useState<1 | 2>(1); // Active input board
-  const [catSpeech, setCatSpeech] = useState('Double Anagram Mode! Solve sub-words for both words!');
-  const [showResult, setShowResult] = useState(false);
+  const [targetWord1, setTargetWord1] = useState('');
+  const [targetWord2, setTargetWord2] = useState('');
+  const [guesses, setGuesses] = useState<string[]>([]);
+  const [currentGuess, setCurrentGuess] = useState('');
+  const [isInvalid, setIsInvalid] = useState(false);
   const [gameStatus, setGameStatus] = useState<'playing' | 'won' | 'lost'>('playing');
+  const [showResultModal, setShowResultModal] = useState(false);
+  const [timeToNext, setTimeToNext] = useState('');
 
-  // Letter shuffles
-  const [shuffledLetters1, setShuffledLetters1] = useState<string[]>([]);
-  const [shuffledLetters2, setShuffledLetters2] = useState<string[]>([]);
+  // Evaluate results for each board individually
+  const results1 = guesses.map((g) => evaluateGuess(g, targetWord1));
+  const results2 = guesses.map((g) => evaluateGuess(g, targetWord2));
 
-  const shuffle = (array: string[]) => {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
+  // Determine if boards are solved
+  const isSolved1 = guesses.includes(targetWord1);
+  const isSolved2 = guesses.includes(targetWord2);
+
+  // Generate target words from daily seed + offset
+  useEffect(() => {
+    const idx = getDailyWordIndex();
+    const w1 = WORDS[idx].toUpperCase();
+    const w2 = WORDS[(idx + 3) % WORDS.length].toUpperCase(); // offset by 3 to ensure distinct word
+    setTargetWord1(w1);
+    setTargetWord2(w2);
+    resetMascots();
+
+    // Check history
+    const todayStr = new Date().toDateString();
+    const playedToday = user.history.find(h => h.date === todayStr && h.gameId === 'double');
+    if (playedToday) {
+      setGuesses([w1, w2]); // Mock visual solve
+      setGameStatus(playedToday.result);
+      setShowResultModal(true);
     }
-    return arr;
+
+    const timer = setInterval(() => {
+      const now = new Date();
+      const tomorrow = new Date();
+      tomorrow.setHours(24, 0, 0, 0);
+      const diff = tomorrow.getTime() - now.getTime();
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const mins = Math.floor((diff / (1000 * 60)) % 60);
+      const secs = Math.floor((diff / 1000) % 60);
+      
+      setTimeToNext(
+        `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+      );
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleKeyPress = (key: string) => {
+    if (gameStatus !== 'playing') return;
+
+    if (key === 'Enter') {
+      submitGuess();
+    } else if (key === 'Backspace') {
+      setCurrentGuess((prev) => prev.slice(0, -1));
+      emotions.onKeyPress();
+    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < 5) {
+      setCurrentGuess((prev) => prev + key.toUpperCase());
+      emotions.onKeyPress();
+    }
   };
 
   useEffect(() => {
-    setFoundWords1([]);
-    setFoundWords2([]);
-    setSelectedIndices([]);
-    setShuffledLetters1(shuffle(level1Data.bigWord.split('')));
-    setShuffledLetters2(shuffle(level2Data.bigWord.split('')));
-    setCatSpeech('Tackle both boards at once! Tap letters to make words.');
-    setGameStatus('playing');
-    setShowResult(false);
-  }, [rawLevel]);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      handleKeyPress(e.key);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentGuess, gameStatus]);
 
-  const activeLetters = currentBoard === 1 ? shuffledLetters1 : shuffledLetters2;
-  const currentInputWord = selectedIndices.map(idx => activeLetters[idx]).join('');
-
-  const handleLetterClick = (index: number) => {
-    if (gameStatus !== 'playing') return;
-    if (!isMuted) playClick();
-
-    if (selectedIndices.includes(index)) {
-      // De-select
-      setSelectedIndices(prev => prev.filter(i => i !== index));
-    } else {
-      setSelectedIndices(prev => [...prev, index]);
+  const submitGuess = () => {
+    if (currentGuess.length !== 5) {
+      emotions.onInvalid();
+      setIsInvalid(true);
+      setTimeout(() => setIsInvalid(false), 400);
+      return;
     }
-  };
 
-  const handleShuffle = () => {
-    if (!isMuted) playClick();
-    if (currentBoard === 1) {
-      setShuffledLetters1(shuffle(shuffledLetters1));
-    } else {
-      setShuffledLetters2(shuffle(shuffledLetters2));
+    const cleanGuess = currentGuess.toUpperCase();
+    const cleanWordList = WORDS.map(w => w.toUpperCase());
+
+    if (!cleanWordList.includes(cleanGuess)) {
+      emotions.onInvalid();
+      setIsInvalid(true);
+      setTimeout(() => setIsInvalid(false), 400);
+      return;
     }
-    setSelectedIndices([]);
-  };
 
-  const handleClear = () => {
-    if (!isMuted) playClick();
-    setSelectedIndices([]);
-  };
+    const newGuesses = [...guesses, cleanGuess];
+    setGuesses(newGuesses);
+    setCurrentGuess('');
 
-  const handleSubmit = () => {
-    if (gameStatus !== 'playing' || currentInputWord.length < 3) return;
+    // Check if both solved
+    const nextSolved1 = newGuesses.includes(targetWord1);
+    const nextSolved2 = newGuesses.includes(targetWord2);
 
-    const word = currentInputWord;
-    const targetData = currentBoard === 1 ? level1Data : level2Data;
-    const foundList = currentBoard === 1 ? foundWords1 : foundWords2;
-    const setFoundList = currentBoard === 1 ? setFoundWords1 : setFoundWords2;
+    if (nextSolved1 && nextSolved2) {
+      setGameStatus('won');
+      emotions.onWin(cleanGuess);
+      user.incrementStreak();
+      user.addCoins(75); // bonus coin for pro daily double
+      user.addHistory({
+        date: new Date().toDateString(),
+        gameId: 'double',
+        word: `${targetWord1}/${targetWord2}`,
+        guesses: newGuesses.length,
+        result: 'won'
+      });
+      setTimeout(() => setShowResultModal(true), 1200);
+    } else if (newGuesses.length >= 7) {
+      setGameStatus('lost');
+      emotions.onLoss(`${targetWord1}/${targetWord2}`);
+      user.resetStreak();
+      user.addHistory({
+        date: new Date().toDateString(),
+        gameId: 'double',
+        word: `${targetWord1}/${targetWord2}`,
+        guesses: newGuesses.length,
+        result: 'lost'
+      });
+      setTimeout(() => setShowResultModal(true), 1200);
+    } else {
+      // Evaluate results on boards
+      const wasSolvedBefore1 = guesses.includes(targetWord1);
+      const wasSolvedBefore2 = guesses.includes(targetWord2);
 
-    if (targetData.targetWords.includes(word) && !foundList.includes(word)) {
-      // Correct!
-      const newFound = [...foundList, word];
-      setFoundList(newFound);
-      if (!isMuted) playSuccess();
-      addCoins(10);
-      setCatSpeech(`Great! Spelled "${word}" on Board ${currentBoard}!`);
+      const newlySolved1 = !wasSolvedBefore1 && cleanGuess === targetWord1;
+      const newlySolved2 = !wasSolvedBefore2 && cleanGuess === targetWord2;
 
-      // Check overall victory
-      const allDone1 = currentBoard === 1 ? newFound.length === level1Data.targetWords.length : foundWords1.length === level1Data.targetWords.length;
-      const allDone2 = currentBoard === 2 ? newFound.length === level2Data.targetWords.length : foundWords2.length === level2Data.targetWords.length;
+      if (newlySolved1 || newlySolved2) {
+        emotions.onCorrect(cleanGuess);
+        triggerWordy('cheer', 'Halfway there! 🚀');
+      } else {
+        // Evaluate green/present occurrences
+        const ev1 = evaluateGuess(cleanGuess, targetWord1);
+        const ev2 = evaluateGuess(cleanGuess, targetWord2);
 
-      if (allDone1 && allDone2) {
-        setGameStatus('won');
-        if (!isMuted) playWin();
-        setTimeout(() => setShowResult(true), 800);
+        const partial1 = !isSolved1 && ev1.some(s => s === 'correct' || s === 'present');
+        const partial2 = !isSolved2 && ev2.some(s => s === 'correct' || s === 'present');
+
+        if (partial1 || partial2) {
+          emotions.onCorrect(cleanGuess);
+        } else {
+          emotions.onIncorrect();
+        }
       }
-    } else {
-      // Wrong
-      if (!isMuted) playFailure();
-      setCatSpeech(`"${word}" is not on Board ${currentBoard} list!`);
     }
-
-    setSelectedIndices([]);
-  };
-
-  const handleNextLevel = () => {
-    nextLevel('double');
-    navigate(`/game/double?level=${rawLevel + 1}`);
-  };
-
-  const handleRestart = () => {
-    setFoundWords1([]);
-    setFoundWords2([]);
-    setSelectedIndices([]);
-    setGameStatus('playing');
-    setShowResult(false);
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-between items-center py-4 w-full max-w-2xl mx-auto beach-background min-h-screen text-white select-none px-4">
+    <div className="flex-1 flex flex-col justify-between items-center py-4 w-full max-w-4xl mx-auto min-h-[calc(100vh-60px)] px-4">
+      <Confetti active={gameStatus === 'won'} word={targetWord1} />
+
       {/* Top Navbar */}
-      <div className="w-full flex justify-between items-center bg-black/20 backdrop-blur-md rounded-2xl p-3 border border-white/10">
-        <button onClick={() => navigate('/')} className="hover:scale-105 active:scale-95 transition-transform p-1.5 bg-white/10 rounded-xl">
-          <ArrowLeft size={20} />
+      <div className="w-full flex justify-between items-center bg-white/5 backdrop-blur-md rounded-2xl p-3 border border-white/10 z-10">
+        <button onClick={() => navigate('/hub')} className="hover:scale-105 active:scale-95 transition-transform p-1.5 bg-white/10 rounded-xl">
+          <ArrowLeft size={18} />
         </button>
-        <span className="font-black tracking-widest text-sm uppercase">Double Lvl {rawLevel}</span>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setIsMuted(!isMuted)} className="p-1.5 bg-white/10 rounded-xl hover:scale-105 active:scale-95 transition-transform">
-            {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
-          <div className="flex items-center gap-1 font-bold text-yellow-300 bg-yellow-500/20 px-2.5 py-1 rounded-xl border border-yellow-500/30">
-            <Coins size={16} className="animate-bounce" />
-            <span className="text-xs">{coins}</span>
+        <div className="flex flex-col items-center">
+          <span className="font-black tracking-widest text-xs uppercase text-teal-300">Double Mess (7 Guesses)</span>
+          {gameStatus !== 'playing' && (
+            <span className="text-[10px] text-white/50 font-bold flex items-center gap-1 mt-0.5">
+              <Timer size={10} /> Next in {timeToNext}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 font-bold text-yellow-300 bg-yellow-500/10 px-2.5 py-1 rounded-xl text-xs">
+            <Coins size={14} className="animate-bounce" />
+            <span>{user.coins}</span>
           </div>
         </div>
       </div>
 
-      {/* Guide Cat thought bubble */}
-      <div className="w-full flex gap-3 items-center my-3 max-w-md">
-        <div className="flex-1 bg-white text-slate-800 rounded-2xl p-2.5 text-xs font-semibold relative shadow-lg border-2 border-sky-300">
-          <div className="absolute top-1/2 -right-2 w-4 h-4 bg-white border-r-2 border-b-2 border-sky-300 rotate-45 transform -translate-y-1/2"></div>
-          {catSpeech}
-        </div>
-        <div className="w-14 h-14 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl flex items-center justify-center text-4xl animate-float">
-          👯
-        </div>
-      </div>
-
-      {/* Grid List for 2 Boards */}
-      <div className="w-full flex gap-4 my-2">
+      {/* Side-by-side Boards */}
+      <div className="flex-1 flex gap-4 sm:gap-8 justify-center items-center py-6 w-full overflow-x-auto max-w-3xl">
         {/* Board 1 */}
-        <div 
-          onClick={() => setCurrentBoard(1)}
-          className={`flex-1 p-3 rounded-2xl border transition-all cursor-pointer ${
-            currentBoard === 1 ? 'bg-sky-950/40 border-amber-400 scale-[1.02] shadow-lg shadow-amber-400/10' : 'bg-sky-950/20 border-white/10 opacity-70 hover:opacity-90'
-          }`}
-        >
-          <div className="text-[9px] uppercase font-black text-center tracking-widest text-sky-200 mb-2">Board 1 ({level1Data.bigWord})</div>
-          <div className="flex flex-wrap justify-center gap-1 max-h-48 overflow-y-auto">
-            {level1Data.targetWords.map((word) => {
-              const isSolved = foundWords1.includes(word);
-              return (
-                <span key={word} className={`text-[9px] font-bold px-2 py-1 rounded-lg border ${
-                  isSolved ? 'beach-tile-solved' : 'beach-tile-placeholder text-transparent border-white/25'
-                }`}>
-                  {isSolved ? word : Array(word.length).fill('_').join(' ')}
-                </span>
-              );
-            })}
-          </div>
+        <div className={`flex flex-col items-center transition-all ${isSolved1 ? 'opacity-50 scale-95' : ''}`}>
+          <h3 className="text-xs font-black uppercase text-emerald-400 mb-2">Board 1</h3>
+          <Board
+            guesses={guesses}
+            results={results1}
+            currentGuess={isSolved1 ? '' : currentGuess}
+            isInvalid={isInvalid && !isSolved1}
+            maxGuesses={7}
+          />
         </div>
 
         {/* Board 2 */}
-        <div 
-          onClick={() => setCurrentBoard(2)}
-          className={`flex-1 p-3 rounded-2xl border transition-all cursor-pointer ${
-            currentBoard === 2 ? 'bg-sky-950/40 border-amber-400 scale-[1.02] shadow-lg shadow-amber-400/10' : 'bg-sky-950/20 border-white/10 opacity-70 hover:opacity-90'
-          }`}
-        >
-          <div className="text-[9px] uppercase font-black text-center tracking-widest text-sky-200 mb-2">Board 2 ({level2Data.bigWord})</div>
-          <div className="flex flex-wrap justify-center gap-1 max-h-48 overflow-y-auto">
-            {level2Data.targetWords.map((word) => {
-              const isSolved = foundWords2.includes(word);
-              return (
-                <span key={word} className={`text-[9px] font-bold px-2 py-1 rounded-lg border ${
-                  isSolved ? 'beach-tile-solved' : 'beach-tile-placeholder text-transparent border-white/25'
-                }`}>
-                  {isSolved ? word : Array(word.length).fill('_').join(' ')}
-                </span>
-              );
-            })}
-          </div>
+        <div className={`flex flex-col items-center transition-all ${isSolved2 ? 'opacity-50 scale-95' : ''}`}>
+          <h3 className="text-xs font-black uppercase text-orange-400 mb-2">Board 2</h3>
+          <Board
+            guesses={guesses}
+            results={results2}
+            currentGuess={isSolved2 ? '' : currentGuess}
+            isInvalid={isInvalid && !isSolved2}
+            maxGuesses={7}
+          />
         </div>
       </div>
 
-      {/* Input Display Area */}
-      <div className="h-10 my-1 font-black text-xl uppercase tracking-widest text-amber-300 flex items-center justify-center bg-black/10 px-6 rounded-full border border-white/5">
-        {currentInputWord || <span className="text-white/40 text-xs tracking-normal font-bold">Select letters for Board {currentBoard}...</span>}
+      {/* Mascot indicators */}
+      <div className="w-full max-w-lg flex justify-between px-4 mb-4 items-end z-10">
+        <div className="relative cursor-pointer" onClick={() => triggerWordy('cheer', 'random')}>
+          <SpeechBubble text={wordyBubble} />
+          <Wordy emotion={wordyEmotion} size={62} />
+        </div>
+        <div className="relative cursor-pointer" onClick={() => triggerMessy('laugh', 'random')}>
+          <SpeechBubble text={messyBubble} />
+          <Messy emotion={messyEmotion} size={62} />
+        </div>
       </div>
 
-      {/* Action Buttons & Letter Tiles */}
-      <div className="w-full flex flex-col items-center gap-3">
-        <div className="flex gap-2 justify-center">
-          <button onClick={handleClear} className="px-4 py-2 bg-rose-500/80 hover:bg-rose-600 text-white rounded-xl text-xs font-bold transition-all border border-rose-400/30">
-            Clear
-          </button>
-          <button onClick={handleShuffle} className="p-2.5 bg-sky-500/80 hover:bg-sky-600 text-white rounded-xl transition-all border border-sky-400/30">
-            <RefreshCw size={14} />
-          </button>
-          <button onClick={handleSubmit} className="px-5 py-2 beach-button-green text-white rounded-xl text-xs font-black transition-all border border-emerald-400/30 flex items-center gap-1">
-            <Sparkles size={12} /> Submit
-          </button>
-        </div>
-
-        {/* Letter Wheel / Row */}
-        <div className="flex flex-wrap justify-center gap-2 max-w-sm px-4 pb-4">
-          {activeLetters.map((char, index) => {
-            const isUsed = selectedIndices.includes(index);
-            return (
-              <button
-                key={index}
-                onClick={() => handleLetterClick(index)}
-                className={`w-11 h-11 rounded-full text-base font-black uppercase flex items-center justify-center transition-all ${
-                  isUsed
-                    ? 'bg-slate-700/50 text-white/40 border-2 border-slate-700/80 scale-95 shadow-inner'
-                    : 'beach-tile-orange text-white hover:scale-105 active:scale-95'
-                }`}
-              >
-                {char}
-              </button>
-            );
-          })}
-        </div>
+      {/* Keyboard */}
+      <div className="w-full z-10">
+        <Keyboard 
+          onKeyPress={handleKeyPress} 
+          guesses={guesses} 
+          results={guesses.map((_, i) => {
+            // Merge results for keyboard colors: correct > present > absent
+            const ev1 = results1[i];
+            const ev2 = results2[i];
+            return ev1.map((val, idx) => {
+              if (val === 'correct' || ev2[idx] === 'correct') return 'correct';
+              if (val === 'present' || ev2[idx] === 'present') return 'present';
+              return 'absent';
+            });
+          })} 
+        />
       </div>
 
       <ResultModal 
-        isOpen={showResult}
-        onClose={() => setShowResult(false)}
-        status={gameStatus}
-        guesses={[]}
-        targetWord={`both boards fully solved!`}
-        hardMode={false}
-        gameId="double"
-        onRestart={handleRestart}
-        onNextLevel={handleNextLevel}
+        isOpen={showResultModal} 
+        onClose={() => setShowResultModal(false)} 
+        status={gameStatus} 
+        guesses={guesses} 
+        targetWord={`${targetWord1} & ${targetWord2}`} 
+        hardMode={false} 
+        gameId="double" 
+        onRestart={() => {
+          setGuesses([]);
+          setCurrentGuess('');
+          setGameStatus('playing');
+          setShowResultModal(false);
+        }}
       />
     </div>
   );
 };
+
+export default DoubleGame;

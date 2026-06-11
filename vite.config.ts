@@ -15,8 +15,8 @@ export default defineConfig({
         name: 'WORDLE MESS',
         short_name: 'WORDLE MESS',
         description: 'guess it. mess it. share it.',
-        theme_color: '#121213',
-        background_color: '#121213',
+        theme_color: '#e0f2fe',
+        background_color: '#e0f2fe',
         display: 'standalone',
         icons: [
           {

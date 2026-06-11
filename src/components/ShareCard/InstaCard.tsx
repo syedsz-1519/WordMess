@@ -40,7 +40,7 @@ export const InstaCard = ({ gameName, level, guesses, hardMode, isWon }: ShareCa
         className="w-[300px] h-[300px] bg-[#121213] p-6 flex flex-col justify-between items-center text-white relative border border-[#3a3a3c]"
       >
         <div className="font-black text-2xl tracking-widest flex items-center">
-          <span>WORDLE</span><span className="text-[#3B6D11] ml-1">MESS</span>
+          <span>WORD</span><span className="text-[#4ade80] ml-1">MESS</span>
         </div>
         
         <div className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-widest">
@@ -58,7 +58,7 @@ export const InstaCard = ({ gameName, level, guesses, hardMode, isWon }: ShareCa
         </div>
 
         <div className="text-[#818384] text-[10px] font-bold tracking-widest">
-          wordle-mess.in
+          wordmess.in
         </div>
       </div>
       

@@ -24,7 +24,7 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
           <h2 className="text-xl font-bold uppercase tracking-wider">{title}</h2>
           <button 
             onClick={onClose}
-            className="text-[var(--wm-text-muted)] hover:text-white font-bold p-1"
+            className="text-[var(--wm-text-muted)] hover:text-[var(--wm-text)] font-bold p-1 bg-slate-100 hover:bg-slate-200/80 rounded-full w-7 h-7 flex items-center justify-center transition-colors"
           >
             ✕
           </button>

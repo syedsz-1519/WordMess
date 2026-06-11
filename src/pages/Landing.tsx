@@ -14,7 +14,7 @@ export const Landing = () => {
     } else if (plan.name === 'Plus') {
       setUser({ plan: 'plus' });
     }
-    navigate('/play');
+    navigate('/hub');
   };
 
   return (

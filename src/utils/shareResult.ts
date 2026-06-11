@@ -20,5 +20,5 @@ export const generateShareText = (
     .map(row => row.map(state => EMOJI_MAP[state]).join(''))
     .join('\n');
     
-  return `${header}${grid}\n\nwordle-mess.in`;
+  return `${header}${grid}\n\nwordmess.in`;
 };
