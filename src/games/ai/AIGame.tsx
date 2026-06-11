@@ -63,34 +63,6 @@ export const AIGame = () => {
     }
   }, []);
 
-  const handleKeyPress = (key: string) => {
-    if (gameStatus !== 'playing') return;
-
-    if (key === 'Enter') {
-      submitGuess();
-    } else if (key === 'Backspace') {
-      setCurrentGuess((prev) => prev.slice(0, -1));
-      emotions.onKeyPress();
-    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < 5) {
-      // If key is cleared by oracle power, prevent typing it!
-      if (clearedKeys.includes(key.toUpperCase())) {
-        emotions.onInvalid();
-        triggerMessy('mock', "That key is locked! 🔒");
-        return;
-      }
-      setCurrentGuess((prev) => prev + key.toUpperCase());
-      emotions.onKeyPress();
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      handleKeyPress(e.key);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentGuess, gameStatus, clearedKeys]);
-
   const submitGuess = async () => {
     if (currentGuess.length !== 5) {
       emotions.onInvalid();
@@ -164,6 +136,34 @@ export const AIGame = () => {
       setRevealedLetterIdx(null);
     }
   };
+
+  const handleKeyPress = (key: string) => {
+    if (gameStatus !== 'playing') return;
+
+    if (key === 'Enter') {
+      submitGuess();
+    } else if (key === 'Backspace') {
+      setCurrentGuess((prev) => prev.slice(0, -1));
+      emotions.onKeyPress();
+    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < 5) {
+      // If key is cleared by oracle power, prevent typing it!
+      if (clearedKeys.includes(key.toUpperCase())) {
+        emotions.onInvalid();
+        triggerMessy('mock', "That key is locked! 🔒");
+        return;
+      }
+      setCurrentGuess((prev) => prev + key.toUpperCase());
+      emotions.onKeyPress();
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      handleKeyPress(e.key);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentGuess, gameStatus, clearedKeys]);
 
   // Oracle Power 1: Clear 2 keys (Removes 2 wrong letters, costs 1 guess)
   const handleClearKeysPower = () => {

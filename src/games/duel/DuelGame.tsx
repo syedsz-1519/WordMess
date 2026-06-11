@@ -53,16 +53,27 @@ export const DuelGame = () => {
     solved: boolean;
   } | null>(null);
 
-  // Fetch or setup duel
-  useEffect(() => {
-    resetMascots();
-    
-    if (duelId) {
-      fetchDuel(duelId);
-    } else {
-      setIsCreating(true);
+  const saveDuelResult = async (finalGuesses: string[], finalResults: LetterState[][], solved: boolean) => {
+    if (!duelId) return;
+    const playerUid = user.uid || 'player';
+    try {
+      const duelRef = doc(db, 'duels', duelId);
+      const snap = await getDoc(duelRef);
+      if (snap.exists()) {
+        const currentData = snap.data();
+        const players = currentData.players || {};
+        players[playerUid] = {
+          guesses: finalGuesses,
+          grid: finalResults,
+          solved,
+          time: Date.now()
+        };
+        await setDoc(duelRef, { players }, { merge: true });
+      }
+    } catch (e) {
+      console.warn("Failed to sync duel results with Firestore:", e);
     }
-  }, [duelId]);
+  };
 
   const fetchDuel = async (id: string) => {
     try {
@@ -101,53 +112,6 @@ export const DuelGame = () => {
       });
     }
   };
-
-  const handleCreateDuel = async (wordToUse?: string) => {
-    let word = wordToUse || customWordInput.toUpperCase();
-    if (!word || word.length !== 5) {
-      word = getRandomWord().toUpperCase();
-    }
-
-    const newId = Math.random().toString(36).substring(2, 9);
-    const creatorUid = user.uid || 'anon_' + Math.random().toString(36).substring(2, 5);
-
-    try {
-      await setDoc(doc(db, 'duels', newId), {
-        word,
-        createdBy: creatorUid,
-        players: {},
-        createdAt: new Date()
-      });
-      setSearchParams({ id: newId });
-    } catch (e) {
-      // Offline fallback: set search param locally
-      setSearchParams({ id: newId });
-      setTargetWord(word);
-      setIsCreating(false);
-    }
-  };
-
-  const handleKeyPress = (key: string) => {
-    if (gameStatus !== 'playing' || isCreating) return;
-
-    if (key === 'Enter') {
-      submitGuess();
-    } else if (key === 'Backspace') {
-      setCurrentGuess((prev) => prev.slice(0, -1));
-      emotions.onKeyPress();
-    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < 5) {
-      setCurrentGuess((prev) => prev + key.toUpperCase());
-      emotions.onKeyPress();
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      handleKeyPress(e.key);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentGuess, gameStatus, isCreating]);
 
   const submitGuess = async () => {
     if (currentGuess.length !== 5) {
@@ -196,27 +160,63 @@ export const DuelGame = () => {
     }
   };
 
-  const saveDuelResult = async (finalGuesses: string[], finalResults: LetterState[][], solved: boolean) => {
-    if (!duelId) return;
-    const playerUid = user.uid || 'player';
+  const handleCreateDuel = async (wordToUse?: string) => {
+    let word = wordToUse || customWordInput.toUpperCase();
+    if (!word || word.length !== 5) {
+      word = getRandomWord().toUpperCase();
+    }
+
+    const newId = Math.random().toString(36).substring(2, 9);
+    const creatorUid = user.uid || 'anon_' + Math.random().toString(36).substring(2, 5);
+
     try {
-      const duelRef = doc(db, 'duels', duelId);
-      const snap = await getDoc(duelRef);
-      if (snap.exists()) {
-        const currentData = snap.data();
-        const players = currentData.players || {};
-        players[playerUid] = {
-          guesses: finalGuesses,
-          grid: finalResults,
-          solved,
-          time: Date.now()
-        };
-        await setDoc(duelRef, { players }, { merge: true });
-      }
+      await setDoc(doc(db, 'duels', newId), {
+        word,
+        createdBy: creatorUid,
+        players: {},
+        createdAt: new Date()
+      });
+      setSearchParams({ id: newId });
     } catch (e) {
-      console.warn("Failed to sync duel results with Firestore:", e);
+      // Offline fallback: set search param locally
+      setSearchParams({ id: newId });
+      setTargetWord(word);
+      setIsCreating(false);
     }
   };
+
+  const handleKeyPress = (key: string) => {
+    if (gameStatus !== 'playing' || isCreating) return;
+
+    if (key === 'Enter') {
+      submitGuess();
+    } else if (key === 'Backspace') {
+      setCurrentGuess((prev) => prev.slice(0, -1));
+      emotions.onKeyPress();
+    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < 5) {
+      setCurrentGuess((prev) => prev + key.toUpperCase());
+      emotions.onKeyPress();
+    }
+  };
+
+  // Fetch or setup duel
+  useEffect(() => {
+    resetMascots();
+    
+    if (duelId) {
+      fetchDuel(duelId);
+    } else {
+      setIsCreating(true);
+    }
+  }, [duelId]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      handleKeyPress(e.key);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentGuess, gameStatus, isCreating]);
 
   const handleShareLink = () => {
     const url = `${window.location.origin}/game/duel?id=${duelId}`;

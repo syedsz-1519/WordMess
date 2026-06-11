@@ -42,6 +42,11 @@ export const SpeedGame = () => {
 
   const timerRef = useRef<any>(null);
 
+  const scoreRef = useRef(score);
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
+
   // Initialize first word
   useEffect(() => {
     setTargetWord(getRandomWord().toUpperCase());
@@ -51,82 +56,23 @@ export const SpeedGame = () => {
     };
   }, []);
 
-  // Timer Tick Down
-  useEffect(() => {
-    if (gameStatus === 'playing') {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((t) => {
-          if (t <= 1) {
-            clearInterval(timerRef.current);
-            handleGameOver();
-            return 0;
-          }
-          if (t === 10) {
-            emotions.onPanic();
-          }
-          return t - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [gameStatus]);
-
-  const handleStartGame = () => {
-    setScore(0);
-    setTimeLeft(60);
-    setGuesses([]);
-    setResults([]);
-    setCurrentGuess('');
-    setTargetWord(getRandomWord().toUpperCase());
-    setGameStatus('playing');
-    resetMascots();
-  };
-
   const handleGameOver = () => {
     setGameStatus('ended');
     emotions.onLoss();
-    triggerMessy('laugh', `Haha! Solved ${score} words!`);
+    triggerMessy('laugh', `Haha! Solved ${scoreRef.current} words!`);
     
     // Save to user store history if applicable
     user.addHistory({
       date: new Date().toDateString(),
       gameId: 'speed',
-      word: `Score: ${score}`,
-      guesses: score,
-      result: score >= 3 ? 'won' : 'lost'
+      word: `Score: ${scoreRef.current}`,
+      guesses: scoreRef.current,
+      result: scoreRef.current >= 3 ? 'won' : 'lost'
     });
     
-    user.addCoins(score * 5); // +5 coins per solved word
+    user.addCoins(scoreRef.current * 5); // +5 coins per solved word
     setShowResultModal(true);
   };
-
-  const handleKeyPress = (key: string) => {
-    if (gameStatus === 'idle') {
-      handleStartGame();
-      return;
-    }
-    if (gameStatus !== 'playing') return;
-
-    if (key === 'Enter') {
-      submitGuess();
-    } else if (key === 'Backspace') {
-      setCurrentGuess((prev) => prev.slice(0, -1));
-      emotions.onKeyPress();
-    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < 5) {
-      setCurrentGuess((prev) => prev + key.toUpperCase());
-      emotions.onKeyPress();
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      handleKeyPress(e.key);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentGuess, gameStatus, targetWord]);
 
   const submitGuess = () => {
     if (currentGuess.length !== 5) {
@@ -176,6 +122,68 @@ export const SpeedGame = () => {
       }
     }
   };
+
+  const handleStartGame = () => {
+    setScore(0);
+    setTimeLeft(60);
+    setGuesses([]);
+    setResults([]);
+    setCurrentGuess('');
+    setTargetWord(getRandomWord().toUpperCase());
+    setGameStatus('playing');
+    resetMascots();
+  };
+
+  const handleKeyPress = (key: string) => {
+    if (gameStatus === 'idle') {
+      handleStartGame();
+      return;
+    }
+    if (gameStatus !== 'playing') return;
+
+    if (key === 'Enter') {
+      submitGuess();
+    } else if (key === 'Backspace') {
+      setCurrentGuess((prev) => prev.slice(0, -1));
+      emotions.onKeyPress();
+    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < 5) {
+      setCurrentGuess((prev) => prev + key.toUpperCase());
+      emotions.onKeyPress();
+    }
+  };
+
+  // Timer Tick Down
+  useEffect(() => {
+    if (gameStatus === 'playing') {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((t) => {
+          if (t <= 1) {
+            clearInterval(timerRef.current);
+            handleGameOver();
+            return 0;
+          }
+          if (t === 10) {
+            emotions.onPanic();
+          }
+          return t - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [gameStatus]);
+
+  // Physical keyboard listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      handleKeyPress(e.key);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentGuess, gameStatus, targetWord]);
+
+
 
   // Timer bar colors
   let timerBarColor = 'bg-emerald-500';

@@ -83,28 +83,6 @@ export const DoubleGame = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const handleKeyPress = (key: string) => {
-    if (gameStatus !== 'playing') return;
-
-    if (key === 'Enter') {
-      submitGuess();
-    } else if (key === 'Backspace') {
-      setCurrentGuess((prev) => prev.slice(0, -1));
-      emotions.onKeyPress();
-    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < 5) {
-      setCurrentGuess((prev) => prev + key.toUpperCase());
-      emotions.onKeyPress();
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      handleKeyPress(e.key);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentGuess, gameStatus]);
-
   const submitGuess = () => {
     if (currentGuess.length !== 5) {
       emotions.onInvalid();
@@ -183,6 +161,28 @@ export const DoubleGame = () => {
       }
     }
   };
+
+  const handleKeyPress = (key: string) => {
+    if (gameStatus !== 'playing') return;
+
+    if (key === 'Enter') {
+      submitGuess();
+    } else if (key === 'Backspace') {
+      setCurrentGuess((prev) => prev.slice(0, -1));
+      emotions.onKeyPress();
+    } else if (/^[A-Za-z]$/.test(key) && currentGuess.length < 5) {
+      setCurrentGuess((prev) => prev + key.toUpperCase());
+      emotions.onKeyPress();
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      handleKeyPress(e.key);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentGuess, gameStatus]);
 
   return (
     <div className="flex-1 flex flex-col justify-between items-center py-4 w-full max-w-4xl mx-auto min-h-[calc(100vh-60px)] px-4">
